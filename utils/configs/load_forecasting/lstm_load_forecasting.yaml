@@ -1,0 +1,43 @@
+model_config:
+  batch_size: 32
+  epochs: 10
+  learning_rate: 0.001
+  load_before_training: False
+  load_model_path: None
+  save_model_dir: 'Models/power_forecasting'
+  predict_model_path: 'Models/load_forecasting/load_forecasting_epoch_9.pth'
+  hidden_dim: 128
+
+tensorboard_save:
+  tensorboard_train_dir: 'tensorboard_log/load_forecasting_training'
+  tensorboard_eval_dir: 'tensorboard_log/load_forecasting_eval'
+
+
+data_config:
+  data1:
+    data_path: 'Data/load_data/load_data.csv'
+    dataset_save_path: 'Data/load_data/dataset1.pkl'
+    scaler_save_path: 'Data/load_data/scale1.pkl'
+
+
+  normalization: 'standard'
+
+  previous_step: 5  
+  forecast_step: 2  
+  validation_split: 0.2
+  
+  previous_drop: None
+  forecast_drop: None
+  target_features:  
+    - 'power'
+
+
+  
+
+
+
+
+
+
+
+    

@@ -8,5 +8,6 @@ __pycache__/
 *.json
 *.pth
 *.npy
-*.ipynb
+# *.ipynb
 *.png
+.env
