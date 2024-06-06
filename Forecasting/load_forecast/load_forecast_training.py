@@ -1,24 +1,13 @@
 # 导入相关包
-import pandas as pd
-import numpy as np
-from matplotlib import pyplot as plt
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_squared_error, mean_absolute_error
-import math
-import os
 import torch
-from torch import nn
-import torch.optim as optim
-from torch.utils.tensorboard import SummaryWriter
-from torch.utils.data import TensorDataset, DataLoader
-import json
 import yaml
 import joblib
+from torch import nn
 from datetime import datetime
-
+import torch.optim as optim
 from Models.lstm_net import load_lstm_net
 from utils.data_process.load_data_process import load_process
-
+from torch.utils.tensorboard import SummaryWriter
 
 
 def load_forecast_training(data_str='data1', config_path='utils/configs/load_forecasting/lstm_load_forecasting.yaml'):
@@ -28,16 +17,13 @@ def load_forecast_training(data_str='data1', config_path='utils/configs/load_for
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     writer = SummaryWriter(log_dir=config['tensorboard_save']['tensorboard_train_dir']+'/'+datetime.now().strftime('%Y%m%d-%H%M%S'))
-    config_str = json.dumps(config, indent=4)
+    config_str = str(config)
     writer.add_text('Config Parameters', config_str, 0)
     scaler_save_path = config['data_config'][data_str]['scaler_save_path']
 
-    load_before_training = config['model_config']['load_before_training']
-    load_model_path = config['model_config']['load_model_path']
-    save_model_dir = config['model_config']['save_model_dir']
-    # 检查路径是否存在，如果不存在则创建
-    if not os.path.exists(os.path.dirname(save_model_dir)):
-        os.makedirs(os.path.dirname(save_model_dir))
+    load_before_training = config['model_config'][data_str]['load_before_training']
+    load_model_path = config['model_config'][data_str]['load_model_path']
+    save_model_dir = config['model_config'][data_str]['save_model_dir']
 
     hidden_dim = config['model_config']['hidden_dim']
     # dataset and dataloader
@@ -88,7 +74,7 @@ def load_forecast_training(data_str='data1', config_path='utils/configs/load_for
         test_loss[epoch] /= len(test_dataloader.dataset)
 
         print(f'Epoch: {epoch+1}/{epochs}, Train Loss: {train_loss[epoch]:.4f}, Test Loss: {test_loss[epoch]:.4f}')
-        save_path = save_model_dir+'/'+save_model_dir.split('/')[-1]+'_epoch_'+str(epoch)+'.pth'
+        save_path = save_model_dir+save_model_dir.split('/')[-3]+'_epoch_'+str(epoch)+'.pth'
         torch.save(model, save_path)
         writer.add_scalar('Loss/train', train_loss[epoch], epoch)
         writer.add_scalar('Loss/val', test_loss[epoch], epoch)

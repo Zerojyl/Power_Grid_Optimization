@@ -21,7 +21,7 @@ from utils.data_process.power_data_process import power_process
 
 
 
-def evaluate_model(data_str='data1', config_path='utils/configs/power_forecasting/lstm_power_forecasting.yaml'):
+def evaluate_model(data_str='data1', writer=None, config_path='utils/configs/power_forecasting/lstm_power_forecasting.yaml'):
     """
     模型预测值与真实值处理，获取 RMSE、MAE 等评价指标信息
 
@@ -29,9 +29,10 @@ def evaluate_model(data_str='data1', config_path='utils/configs/power_forecastin
     # 读取配置文件并导入模型
     with open(config_path) as file:
         config = yaml.safe_load(file)
-    writer = SummaryWriter(log_dir=config['tensorboard_save']['tensorboard_eval_dir']+'/'+datetime.now().strftime('%Y%m%d-%H%M%S'))
-    predict_model_path = config['model_config']['predict_model_path']
-    dataset, train_dataloader, test_dataloader = power_process(yaml_path='utils/configs/power_forecasting/lstm_power_forecasting.yaml', data=data_str)
+    if writer is None:
+        writer = SummaryWriter(log_dir=config['tensorboard_save']['tensorboard_eval_dir']+'/'+datetime.now().strftime('%Y%m%d-%H%M%S'))
+    predict_model_path = config['model_config'][data_str]['predict_model_path']
+    dataset, train_dataloader, test_dataloader = power_process(yaml_path=config_path, data=data_str)
     model = torch.load(predict_model_path)
 
     model.eval()
@@ -75,8 +76,8 @@ def evaluate_model(data_str='data1', config_path='utils/configs/power_forecastin
     mae = mean_absolute_error(temp_true_data[:,:,target_index].flatten(), temp_predicted_data[:,:,target_index].flatten())
     print("RMSE:{}".format(round(rmse,3)))
     print("MAE: {}".format(round(mae, 3)))
-    writer.add_scalar('RMSE', rmse)
-    writer.add_scalar('MAE', mae)
+    writer.add_scalar('RMSE/'+data_str, rmse)
+    writer.add_scalar('MAE/'+data_str, mae)
     
 
     # 绘制预测图形
@@ -90,7 +91,7 @@ def evaluate_model(data_str='data1', config_path='utils/configs/power_forecastin
         plt.title('time step:{}min'.format(i*15+15))
         plt.legend()
     plt.show()
-    writer.add_figure('Prediction vs True Data', plt.gcf())
+    writer.add_figure('Prediction vs True Data ('+ data_str+ ')', plt.gcf())
 
 
 
@@ -98,7 +99,20 @@ def evaluate_model(data_str='data1', config_path='utils/configs/power_forecastin
 
 
 if __name__ == '__main__':
-    evaluate_model()
+    config_path='utils/configs/power_forecasting/lstm_power_forecasting.yaml' 
+    with open(config_path) as file:
+        config = yaml.safe_load(file)
+
+    writer = SummaryWriter(log_dir=config['tensorboard_save']['tensorboard_eval_dir']+'/'+datetime.now().strftime('%Y%m%d-%H%M%S'))
+    print('data1 evaluating------------------')
+    evaluate_model(writer=writer, config_path=config_path, data_str='data1')
+    print('data2 evaluating------------------')
+    evaluate_model(writer=writer, config_path=config_path, data_str='data2')
+    print('data3 evaluating------------------')
+    evaluate_model(writer=writer, config_path=config_path, data_str='data3')
+    print('data4 evaluating------------------')
+    evaluate_model(writer=writer, config_path=config_path, data_str='data4')
+
 
         
 

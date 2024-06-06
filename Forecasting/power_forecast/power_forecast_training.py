@@ -21,31 +21,31 @@ from utils.data_process.power_data_process import power_process
 
 
 
-def power_forecast_training(data_str='data1', config_path='utils/configs/power_forecasting/lstm_power_forecasting.yaml'):
+def power_forecast_training(data_str='data1', writer=None, config_path='utils/configs/power_forecasting/lstm_power_forecasting.yaml'):
     
     with open(config_path) as file:
         config = yaml.safe_load(file)
     
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    writer = SummaryWriter(log_dir=config['tensorboard_save']['tensorboard_train_dir']+'/'+datetime.now().strftime('%Y%m%d-%H%M%S'))
-    config_str = json.dumps(config, indent=4)
+    if writer is None:
+        writer = SummaryWriter(log_dir=config['tensorboard_save']['tensorboard_train_dir']+'/'+datetime.now().strftime('%Y%m%d-%H%M%S'))
+    config_str = str(config)
     writer.add_text('Config Parameters', config_str, 0)
-    scaler_save_path = config['data_config'][data_str]['scaler_save_path']
+    
 
-    load_before_training = config['model_config']['load_before_training']
-    load_model_path = config['model_config']['load_model_path']
-    save_model_dir = config['model_config']['save_model_dir']
-    # 检查路径是否存在，如果不存在则创建
-    if not os.path.exists(os.path.dirname(save_model_dir)):
-        os.makedirs(os.path.dirname(save_model_dir))
+    load_before_training = config['model_config'][data_str]['load_before_training']
+    load_model_path = config['model_config'][data_str]['load_model_path']
+    save_model_dir = config['model_config'][data_str]['save_model_dir']
+
 
     hidden_dim = config['model_config']['hidden_dim']
     # dataset and dataloader
-    dataset, train_dataloader, test_dataloader = power_process(yaml_path='utils/configs/power_forecasting/lstm_power_forecasting.yaml', data=data_str)
+    dataset, train_dataloader, test_dataloader = power_process(yaml_path=config_path, data=data_str)
     input_dim1 = next(iter(train_dataloader))[0].shape[2]
     input_dim2 = next(iter(train_dataloader))[1].shape[1]
     output_dim = next(iter(train_dataloader))[2].shape[1]
     scaler = dataset.scaler
+    scaler_save_path = config['data_config'][data_str]['scaler_save_path']
     joblib.dump(scaler, scaler_save_path)
 
 
@@ -91,10 +91,10 @@ def power_forecast_training(data_str='data1', config_path='utils/configs/power_f
         test_loss[epoch] /= len(test_dataloader.dataset)
 
         print(f'Epoch: {epoch+1}/{epochs}, Train Loss: {train_loss[epoch]:.4f}, Test Loss: {test_loss[epoch]:.4f}')
-        save_path = save_model_dir+'/'+save_model_dir.split('/')[-1]+'_epoch_'+str(epoch)+'.pth'
+        save_path = save_model_dir+save_model_dir.split('/')[-3]+'_epoch_'+str(epoch)+'.pth'
         torch.save(model, save_path)
-        writer.add_scalar('Loss/train', train_loss[epoch], epoch)
-        writer.add_scalar('Loss/val', test_loss[epoch], epoch)
+        writer.add_scalar('Loss/train'+data_str, train_loss[epoch], epoch)
+        writer.add_scalar('Loss/val'+data_str, test_loss[epoch], epoch)
 
 
 
@@ -102,5 +102,18 @@ def power_forecast_training(data_str='data1', config_path='utils/configs/power_f
     # --------------------------------------------------------------------------------------------
 
 if __name__ == '__main__':
-    power_forecast_training(data_str='data1', config_path='utils/configs/power_forecasting/lstm_power_forecasting.yaml')
+    config_path='utils/configs/power_forecasting/lstm_power_forecasting.yaml' 
+    with open(config_path) as file:
+        config = yaml.safe_load(file)
+
+    writer = SummaryWriter(log_dir=config['tensorboard_save']['tensorboard_train_dir']+'/'+datetime.now().strftime('%Y%m%d-%H%M%S'))
+    print('data1 training------------------')
+    power_forecast_training(data_str='data1', config_path=config_path, writer=writer)
+    print('data2 training------------------')
+    power_forecast_training(data_str='data2', config_path=config_path, writer=writer)
+    print('data3 training------------------')
+    power_forecast_training(data_str='data3', config_path=config_path, writer=writer)
+    print('data4 training------------------')
+    power_forecast_training(data_str='data4', config_path=config_path, writer=writer)
+
     print('done')

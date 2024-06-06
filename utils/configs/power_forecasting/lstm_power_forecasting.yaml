@@ -2,11 +2,27 @@ model_config:
   batch_size: 32
   epochs: 20
   learning_rate: 0.01
-  load_before_training: False
-  load_model_path: None
-  save_model_dir: 'Models/power_forecasting'
-  predict_model_path: 'Models/power_forecasting/power_forecasting_epoch_19.pth'
   hidden_dim: 128
+  data1:
+    load_before_training: False
+    load_model_path: null
+    save_model_dir: 'Models/power_forecasting/data1/'
+    predict_model_path: 'Models/power_forecasting/data1/power_forecasting_epoch_19.pth'
+  data2:
+    load_before_training: False
+    load_model_path: null
+    save_model_dir: 'Models/power_forecasting/data2/'
+    predict_model_path: 'Models/power_forecasting/data2/power_forecasting_epoch_19.pth'
+  data3:
+    load_before_training: False
+    load_model_path: null
+    save_model_dir: 'Models/power_forecasting/data3/'
+    predict_model_path: 'Models/power_forecasting/data3/power_forecasting_epoch_19.pth'
+  data4:
+    load_before_training: False
+    load_model_path: null
+    save_model_dir: 'Models/power_forecasting/data4/'
+    predict_model_path: 'Models/power_forecasting/data4/power_forecasting_epoch_19.pth'
 
 tensorboard_save:
   tensorboard_train_dir: 'tensorboard_log/power_forecasting_training'
@@ -18,6 +34,7 @@ data_config:
     data_path: 'Data/power_data/merged_power_data1.csv'
     dataset_save_path: 'Data/power_data/dataset1.pkl'
     scaler_save_path: 'Data/power_data/scale1.pkl'
+
   data2:
     data_path: 'Data/power_data/merged_power_data2.csv'
     dataset_save_path: 'Data/power_data/dataset2.pkl'

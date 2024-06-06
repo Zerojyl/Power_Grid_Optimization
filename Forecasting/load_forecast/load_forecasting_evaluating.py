@@ -21,7 +21,7 @@ from utils.data_process.load_data_process import load_process
 
 
 
-def evaluate_model(data_str='data1', config_path='utils/configs/load_forecasting/lstm_load_forecasting.yaml'):
+def evaluate_model(data_str='data1', config_path='utils/configs/load_forecasting/lstm_load_forecasting.yaml', writer=None):
     """
     模型预测值与真实值处理，获取 RMSE、MAE 等评价指标信息
 
@@ -29,8 +29,9 @@ def evaluate_model(data_str='data1', config_path='utils/configs/load_forecasting
     # 读取配置文件并导入模型
     with open(config_path) as file:
         config = yaml.safe_load(file)
-    writer = SummaryWriter(log_dir=config['tensorboard_save']['tensorboard_eval_dir']+'/'+datetime.now().strftime('%Y%m%d-%H%M%S'))
-    predict_model_path = config['model_config']['predict_model_path']
+    if writer is None:
+        writer = SummaryWriter(log_dir=config['tensorboard_save']['tensorboard_eval_dir']+'/'+datetime.now().strftime('%Y%m%d-%H%M%S'))
+    predict_model_path = config['model_config'][data_str]['predict_model_path']
     dataset, train_dataloader, test_dataloader = load_process(yaml_path=config_path, data=data_str)
     model = torch.load(predict_model_path)
 
@@ -97,7 +98,15 @@ def evaluate_model(data_str='data1', config_path='utils/configs/load_forecasting
 
 
 if __name__ == '__main__':
-    evaluate_model()
+    config_path='utils/configs/load_forecasting/lstm_load_forecasting.yaml' 
+    with open(config_path) as file:
+        config = yaml.safe_load(file)
+
+    writer = SummaryWriter(log_dir=config['tensorboard_save']['tensorboard_eval_dir']+'/'+datetime.now().strftime('%Y%m%d-%H%M%S'))
+    evaluate_model(writer=writer,
+                   config_path=config_path,
+                   data_str='data1')
+
 
         
 
