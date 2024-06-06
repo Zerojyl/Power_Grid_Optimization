@@ -1,17 +1,16 @@
 model_config:
   batch_size: 32
-  epochs: 10
-  learning_rate: 0.001
+  epochs: 20
+  learning_rate: 0.01
   load_before_training: False
-  load_model_path: None
-  save_model_dir: 'Models/power_forecasting'
-  predict_model_path: 'Models/load_forecasting/load_forecasting_epoch_9.pth'
+  load_model_path: null
+  save_model_dir: 'Models/load_forecasting'
+  predict_model_path: 'Models/load_forecasting/load_forecasting_epoch_19.pth'
   hidden_dim: 128
 
 tensorboard_save:
   tensorboard_train_dir: 'tensorboard_log/load_forecasting_training'
   tensorboard_eval_dir: 'tensorboard_log/load_forecasting_eval'
-
 
 data_config:
   data1:
@@ -19,17 +18,113 @@ data_config:
     dataset_save_path: 'Data/load_data/dataset1.pkl'
     scaler_save_path: 'Data/load_data/scale1.pkl'
 
-
   normalization: 'standard'
 
-  previous_step: 5  
-  forecast_step: 2  
+  previous_step: 24  
+  forecast_step: 6  
   validation_split: 0.2
   
-  previous_drop: None
-  forecast_drop: None
+  previous_features: 
+    - 'load_power1'
+    - 'load_power2'
+    - 'load_power3'
+    - 'load_power4'
+    - 'load_power5'
+    - 'load_power6'
+    - 'load_power7'
+    - 'load_power8'
+    - 'load_power9'
+    - 'load_power10'
+    - 'load_power11'
+    - 'load_power12'
+    - 'load_power13'
+    - 'load_power14'
+    - 'load_power15'
+    - 'load_power16'
+    - 'load_power17'
+    - 'load_power18'
+    - 'load_power19'
+    - 'load_power20'
+    - 'load_power21'
+    - 'load_power22'
+    - 'load_power23'
+    - 'load_power24'
+    - 'load_power25'
+    - 'load_power26'
+    - 'load_power27'
+    - 'load_power28'
+    - 'load_power29'
+    - 'load_power30'
+    - 'load_power31'
+    - 'load_power32'
+
+  forecast_features: 
+    - 'load_power1'
+    - 'load_power2'
+    - 'load_power3'
+    - 'load_power4'
+    - 'load_power5'
+    - 'load_power6'
+    - 'load_power7'
+    - 'load_power8'
+    - 'load_power9'
+    - 'load_power10'
+    - 'load_power11'
+    - 'load_power12'
+    - 'load_power13'
+    - 'load_power14'
+    - 'load_power15'
+    - 'load_power16'
+    - 'load_power17'
+    - 'load_power18'
+    - 'load_power19'
+    - 'load_power20'
+    - 'load_power21'
+    - 'load_power22'
+    - 'load_power23'
+    - 'load_power24'
+    - 'load_power25'
+    - 'load_power26'
+    - 'load_power27'
+    - 'load_power28'
+    - 'load_power29'
+    - 'load_power30'
+    - 'load_power31'
+    - 'load_power32'
+
   target_features:  
-    - 'power'
+    - 'load_power1'
+    - 'load_power2'
+    - 'load_power3'
+    - 'load_power4'
+    - 'load_power5'
+    - 'load_power6'
+    - 'load_power7'
+    - 'load_power8'
+    - 'load_power9'
+    - 'load_power10'
+    - 'load_power11'
+    - 'load_power12'
+    - 'load_power13'
+    - 'load_power14'
+    - 'load_power15'
+    - 'load_power16'
+    - 'load_power17'
+    - 'load_power18'
+    - 'load_power19'
+    - 'load_power20'
+    - 'load_power21'
+    - 'load_power22'
+    - 'load_power23'
+    - 'load_power24'
+    - 'load_power25'
+    - 'load_power26'
+    - 'load_power27'
+    - 'load_power28'
+    - 'load_power29'
+    - 'load_power30'
+    - 'load_power31'
+    - 'load_power32'
 
 
   

@@ -16,12 +16,12 @@ import yaml
 import joblib
 from datetime import datetime
 
-from Models.lstm_net import lstm_net
-from utils.data_process.power_data_process import power_process
+from Models.lstm_net import load_lstm_net
+from utils.data_process.load_data_process import load_process
 
 
 
-def evaluate_model(data_str='data1', config_path='utils/configs/power_forecasting/lstm_power_forecasting.yaml'):
+def evaluate_model(data_str='data1', config_path='utils/configs/load_forecasting/lstm_load_forecasting.yaml'):
     """
     模型预测值与真实值处理，获取 RMSE、MAE 等评价指标信息
 
@@ -31,18 +31,17 @@ def evaluate_model(data_str='data1', config_path='utils/configs/power_forecastin
         config = yaml.safe_load(file)
     writer = SummaryWriter(log_dir=config['tensorboard_save']['tensorboard_eval_dir']+'/'+datetime.now().strftime('%Y%m%d-%H%M%S'))
     predict_model_path = config['model_config']['predict_model_path']
-    dataset, train_dataloader, test_dataloader = power_process(yaml_path='utils/configs/power_forecasting/lstm_power_forecasting.yaml', data=data_str)
+    dataset, train_dataloader, test_dataloader = load_process(yaml_path=config_path, data=data_str)
     model = torch.load(predict_model_path)
 
     model.eval()
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
     scaler = joblib.load(config['data_config'][data_str]['scaler_save_path'])
-    for i, (X1, X2, y) in enumerate(train_dataloader):
+    for i, (X1, y) in enumerate(train_dataloader):
         X1 = X1.to(device)
-        X2 = X2.to(device)
         y = y.to(device)
-        y_pred = model(X1, X2)
+        y_pred = model(X1)
         if i == 0:
             predicted_data = y_pred.cpu().detach().numpy()
             true_data = y.cpu().detach().numpy()
@@ -81,22 +80,16 @@ def evaluate_model(data_str='data1', config_path='utils/configs/power_forecastin
 
     # 绘制预测图形
     show_start = torch.randint(0, len(predicted_data)-1000, (1,)).item()
-    show_end = show_start + 12
+    show_end = show_start + 100
     plt.figure(facecolor='white')
     for i in range(predict_time):   
         plt.subplot(predict_time, 1, i+1)
-        plt.plot(temp_true_data[show_start:show_end,i,target_index], label='True Data')
-        plt.plot(temp_predicted_data[show_start:show_end,i,target_index], label='Prediction')
+        plt.plot(temp_true_data[show_start:show_end,i,target_index[0]], label='True Data')
+        plt.plot(temp_predicted_data[show_start:show_end,i,target_index[0]], label='Prediction')
         plt.title('time step:{}min'.format(i*15+15))
         plt.legend()
     plt.show()
     writer.add_figure('Prediction vs True Data', plt.gcf())
-
-
-
-
-    
-
 
 
 
