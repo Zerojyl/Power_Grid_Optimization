@@ -16,7 +16,7 @@ import yaml
 import joblib
 from datetime import datetime
 
-from Models.lstm_net import lstm_net, poly_net
+from Models.lstm_net import power_lstm_net
 from utils.data_process.power_data_process import power_process
 
 
@@ -42,13 +42,14 @@ def power_forecast_training(data_str='data1', config_path='utils/configs/power_f
     hidden_dim = config['model_config']['hidden_dim']
     # dataset and dataloader
     dataset, train_dataloader, test_dataloader = power_process(yaml_path='utils/configs/power_forecasting/lstm_power_forecasting.yaml', data=data_str)
-    input_dim = next(iter(train_dataloader))[0].shape[2]
-    output_dim = next(iter(train_dataloader))[1].shape[2]
+    input_dim1 = next(iter(train_dataloader))[0].shape[2]
+    input_dim2 = next(iter(train_dataloader))[1].shape[1]
+    output_dim = next(iter(train_dataloader))[2].shape[1]
     scaler = dataset.scaler
     joblib.dump(scaler, scaler_save_path)
 
 
-    model = poly_net(input_dim, hidden_dim, output_dim).to(device)
+    model = power_lstm_net(input_dim1, hidden_dim, input_dim2, output_dim).to(device)
     criterion = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=config['model_config']['learning_rate'])
     if load_before_training and load_model_path is not None:
@@ -64,12 +65,13 @@ def power_forecast_training(data_str='data1', config_path='utils/configs/power_f
     print("start training------------------")
     for epoch in range(epochs):
         model.train()
-        for train_x, train_y in train_dataloader:
-            train_x = train_x.to(device)
+        for train_x1, train_x2, train_y in train_dataloader:
+            train_x1 = train_x1.to(device)
+            train_x2 = train_x2.to(device)
             train_y = train_y.to(device)
 
             optimizer.zero_grad()
-            outputs = model(train_x)
+            outputs = model(train_x1, train_x2)
             loss = criterion(outputs, train_y)
             train_loss[epoch] += loss.item()*train_y.size(0)
             loss.backward()
@@ -77,11 +79,12 @@ def power_forecast_training(data_str='data1', config_path='utils/configs/power_f
             
 
         model.eval()
-        for test_x, test_y in test_dataloader:
-            test_x = test_x.to(device)
+        for test_x1, test_x2, test_y in test_dataloader:
+            test_x1 = test_x1.to(device)
+            test_x2 = test_x2.to(device)
             test_y = test_y.to(device)
 
-            loss = criterion(model(test_x), test_y)
+            loss = criterion(model(test_x1, test_x2), test_y)
             test_loss[epoch] += loss.item()*test_y.size(0)
 
         train_loss[epoch] /= len(train_dataloader.dataset)

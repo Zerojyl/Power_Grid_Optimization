@@ -5,7 +5,7 @@ from torch.utils.data import TensorDataset, DataLoader, Dataset
 
 
 class make_dataset(Dataset):
-    def __init__(self, data_path, normalization, previous_step, previous_drop, forecast_step, forecast_drop, target_features, dropnan=True):
+    def __init__(self, data_path, normalization, previous_step, previous_features, forecast_step, forecast_features, target_features, dropnan=True):
         self.original_data = pd.read_csv(data_path, index_col=['time'])
         self.target_columns_index = self.original_data.columns.get_indexer(target_features)
 
@@ -18,8 +18,7 @@ class make_dataset(Dataset):
             raise ValueError('normalization should be standard or minmax')
         self.scaled_data = self.df_scale(self.original_data)
 
-        self.dataframe, self.target_columns = series_to_supervised(self.scaled_data, target_features, previous_step, forecast_step, previous_drop, forecast_drop, dropnan)
-        self.data = self.dataframe.values
+        self.pre_curr_df, self.fore_df, self.target_df = series_to_supervised(self.scaled_data, target_features, previous_step, forecast_step, previous_features, forecast_features, dropnan)
         
 
     def df_scale(self, df):
@@ -41,7 +40,7 @@ class make_dataset(Dataset):
     
 
 
-def series_to_supervised(df, target_features, previous_step = 1, forecast_step = 1, previous_drop = None, forecast_drop = None, dropnan = True):
+def series_to_supervised(df, target_features, previous_step = 1, forecast_step = 1, previous_features = None, forecast_features = None, dropnan = True):
     '''
     input:
         df: dataframe of data
@@ -51,12 +50,15 @@ def series_to_supervised(df, target_features, previous_step = 1, forecast_step =
     '''
     previous_df = df
     forecast_df = df
-    if previous_drop: 
-        previous_df = df.drop(columns = previous_drop, inplace = False)# inplace = False return a copy
-    if forecast_drop:
-        forecast_df = df.drop(columns = forecast_drop, inplace = False)
+    if previous_features:
+        previous_df = df[previous_features]
+    if forecast_features:
+        forecast_df = df[forecast_features]
+    
+
     res_df = pd.DataFrame()
     names = []
+    forecast_columns = []
     target_columns = []
     # 历史序列(t-n, ... t-1)
     for i in range(previous_step, 0, -1):
@@ -69,11 +71,19 @@ def series_to_supervised(df, target_features, previous_step = 1, forecast_step =
     for i in range(1, forecast_step+1):
         res_df = pd.concat([res_df, forecast_df.shift(-i)], axis = 1)
         names += [('%s(t+%d)' % (column, i)) for column in forecast_df.columns]
+        forecast_columns += [('%s(t+%d)' % (column, i)) for column in forecast_features]
         target_columns += [('%s(t+%d)' % (column, i)) for column in target_features]
     # 组合起来
     res_df.columns = names
     # 丢掉NaN
     if dropnan:
         res_df.dropna(inplace=True)
-    return res_df, target_columns
+
+    res_target_df = res_df[target_columns]
+    res_fore_df = res_df[forecast_columns]
+    res_fore_df = res_fore_df.drop(target_columns, axis=1)
+    res_pre_curr_df = res_df.drop(forecast_columns, axis=1)
+
+
+    return res_pre_curr_df, res_fore_df, res_target_df
 

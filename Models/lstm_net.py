@@ -1,6 +1,25 @@
 import torch.nn as nn
 import torch
 
+
+
+class power_lstm_net(nn.Module):
+    def __init__(self, input_dim1, hidden_dim, input_dim2, output_dim):
+        super(power_lstm_net, self).__init__()
+        self.hidden_dim = hidden_dim
+        self.lstm = nn.LSTM(input_dim1, hidden_dim, batch_first=True)
+        self.fc = nn.Sequential(nn.Linear(hidden_dim+input_dim2, output_dim*2),
+                                nn.Dropout(0.5),
+                                nn.ReLU(),
+                                nn.Linear(output_dim*2, output_dim))
+
+    def forward(self, x1, x2):
+        lstm_out, _ = self.lstm(x1)
+        lstm_out = torch.cat((lstm_out[:, -1, :], x2), dim=1)
+        out = self.fc(lstm_out)
+        return out
+
+
 class lstm_net(nn.Module):
     def __init__(self, input_dim, hidden_dim, output_dim):
         super(lstm_net, self).__init__()
@@ -30,9 +49,11 @@ class poly_net(nn.Module):
     
 
 if __name__ == '__main__':
-    model = lstm_net(10, 10, 10)
+    model = power_lstm_net(10, 12, 14, 16)
     print(model)
-    input = torch.randn(5, 1, 10)
-    output = model(input)
-    print(output.size())
+    input1 = torch.randn(1, 5, 10)
+    input2 = torch.randn(1, 14)
+    output = model(input1, input2)
+    print(output)
+    print(output.shape)
     print('done')

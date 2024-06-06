@@ -38,10 +38,11 @@ def evaluate_model(data_str='data1', config_path='utils/configs/power_forecastin
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
     scaler = joblib.load(config['data_config'][data_str]['scaler_save_path'])
-    for i, (X, y) in enumerate(train_dataloader):
-        X = X.to(device)
+    for i, (X1, X2, y) in enumerate(train_dataloader):
+        X1 = X1.to(device)
+        X2 = X2.to(device)
         y = y.to(device)
-        y_pred = model(X)
+        y_pred = model(X1, X2)
         if i == 0:
             predicted_data = y_pred.cpu().detach().numpy()
             true_data = y.cpu().detach().numpy()
@@ -54,6 +55,8 @@ def evaluate_model(data_str='data1', config_path='utils/configs/power_forecastin
     original_col_len = len(dataset.original_data.columns)
     predicted_data = predicted_data.reshape(predicted_data.shape[0], -1 , len(target_index))
     true_data = true_data.reshape(true_data.shape[0], -1 , len(target_index))
+    print(predicted_data.shape)
+    print(true_data.shape)
     assert predicted_data.shape == true_data.shape 
     predict_time = predicted_data.shape[1]
     temp_predicted_data = np.ones((len(predicted_data), predict_time, original_col_len))
@@ -77,8 +80,8 @@ def evaluate_model(data_str='data1', config_path='utils/configs/power_forecastin
     
 
     # 绘制预测图形
-    show_start = 0
-    show_end = 100
+    show_start = torch.randint(0, len(predicted_data)-1000, (1,)).item()
+    show_end = show_start + 12
     plt.figure(facecolor='white')
     for i in range(predict_time):   
         plt.subplot(predict_time, 1, i+1)
@@ -87,8 +90,12 @@ def evaluate_model(data_str='data1', config_path='utils/configs/power_forecastin
         plt.title('time step:{}min'.format(i*15+15))
         plt.legend()
     plt.show()
-
     writer.add_figure('Prediction vs True Data', plt.gcf())
+
+
+
+
+    
 
 
 

@@ -1,11 +1,11 @@
 model_config:
   batch_size: 32
-  epochs: 10
+  epochs: 20
   learning_rate: 0.01
   load_before_training: False
   load_model_path: None
   save_model_dir: 'Models/power_forecasting'
-  predict_model_path: 'Models/power_forecasting/power_forecasting_epoch_9.pth'
+  predict_model_path: 'Models/power_forecasting/power_forecasting_epoch_19.pth'
   hidden_dim: 128
 
 tensorboard_save:
@@ -33,37 +33,12 @@ data_config:
 
   normalization: 'standard'
 
-  previous_step: 5  
-  forecast_step: 12  
+  previous_step: 24  
+  forecast_step: 6  
   validation_split: 0.2
   
 
-  previous_drop: 
-    # - 'wind_speed_10m'
-    # - 'wind_direction_10m'
-    # - 'wind_speed_30m'
-    # - 'wind_direction_30m'
-    # - 'wind_speed_50m'
-    # - 'wind_direction_50m'
-    # - 'wind_speed_70m'
-    # - 'wind_direction_70m'
-    # - 'temperature_10m'
-    # - 'air_pressure'
-    # - 'humidity'
-    - 'forcast_wind_speed_10m'
-    - 'forcast_wind_direction_10m'
-    - 'forcast_wind_speed_30m'
-    - 'forcast_wind_direction_30m'
-    - 'forcast_wind_speed_50m'
-    - 'forcast_wind_direction_50m'
-    - 'forcast_wind_speed_70m'
-    - 'forcast_wind_direction_70m'
-    - 'forcast_air_pressure'
-    - 'forcast_temperature'
-    - 'forcast_humidity'
-    # - 'power'
-
-  forecast_drop:  
+  previous_features: 
     - 'wind_speed_10m'
     - 'wind_direction_10m'
     - 'wind_speed_30m'
@@ -86,7 +61,32 @@ data_config:
     # - 'forcast_air_pressure'
     # - 'forcast_temperature'
     # - 'forcast_humidity'
-    # - 'power'
+    - 'power'
+
+  forecast_features:  
+    # - 'wind_speed_10m'
+    # - 'wind_direction_10m'
+    # - 'wind_speed_30m'
+    # - 'wind_direction_30m'
+    # - 'wind_speed_50m'
+    # - 'wind_direction_50m'
+    # - 'wind_speed_70m'
+    # - 'wind_direction_70m'
+    # - 'temperature_10m'
+    # - 'air_pressure'
+    # - 'humidity'
+    - 'forcast_wind_speed_10m'
+    - 'forcast_wind_direction_10m'
+    - 'forcast_wind_speed_30m'
+    - 'forcast_wind_direction_30m'
+    - 'forcast_wind_speed_50m'
+    - 'forcast_wind_direction_50m'
+    - 'forcast_wind_speed_70m'
+    - 'forcast_wind_direction_70m'
+    - 'forcast_air_pressure'
+    - 'forcast_temperature'
+    - 'forcast_humidity'
+    - 'power'
   target_features:  
     - 'power'
 
