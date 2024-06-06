@@ -1,6 +1,7 @@
 import pandas as pd
 import yaml
 import torch
+import joblib
 
 load_path = 'C:/project/Electric-innovation-competition/Power_Grid_Optimization/Data/load_data/load_data.csv'
 power1_path='C:/project/Electric-innovation-competition/Power_Grid_Optimization/Data/power_data/merged_power_data1.csv'
@@ -39,6 +40,10 @@ class predict_class(csv2df):
         self.model = self.model_load()
         self.history_step = self.config['data_config']['previous_step']
         self.forecast_step = self.config['data_config']['forecast_step']
+        self.scaler_path = self.config['data_config'][self.data_str]['scaler_save_path']
+        self.scaler = joblib.load(self.scaler_path)
+        self.scaled_df = self.df_scale()
+
 
     def model_load(self):
         model_path = self.config['model_config'][self.data_str]['predict_model_path']
@@ -67,7 +72,15 @@ class predict_class(csv2df):
         data = data.drop(drop_features, axis=1)
      
         return data
+
+    def df_scale(self):
+        values = self.df.values
+        columns = self.df.columns
+        values = self.scaler.transform(values)
+        scaled_df = pd.DataFrame(values, columns=columns)
+        return scaled_df
     
+
     def predict(self, point_step, base_time='2019-01-05 00:00:00'):
         data_pre_cur = self.get_data(point_step, base_time, history=True)
         data_pre_cur = torch.tensor(data_pre_cur.values).float()
