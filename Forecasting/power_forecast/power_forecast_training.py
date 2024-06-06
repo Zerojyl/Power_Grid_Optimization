@@ -1,24 +1,13 @@
 # 导入相关包
-import pandas as pd
-import numpy as np
-from matplotlib import pyplot as plt
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_squared_error, mean_absolute_error
-import math
-import os
 import torch
-from torch import nn
-import torch.optim as optim
-from torch.utils.tensorboard import SummaryWriter
-from torch.utils.data import TensorDataset, DataLoader
-import json
 import yaml
 import joblib
+from torch import nn
+import torch.optim as optim
 from datetime import datetime
-
 from Models.lstm_net import power_lstm_net
 from utils.data_process.power_data_process import power_process
-
+from torch.utils.tensorboard import SummaryWriter
 
 
 def power_forecast_training(data_str='data1', writer=None, config_path='utils/configs/power_forecasting/lstm_power_forecasting.yaml'):
@@ -93,8 +82,8 @@ def power_forecast_training(data_str='data1', writer=None, config_path='utils/co
         print(f'Epoch: {epoch+1}/{epochs}, Train Loss: {train_loss[epoch]:.4f}, Test Loss: {test_loss[epoch]:.4f}')
         save_path = save_model_dir+save_model_dir.split('/')[-3]+'_epoch_'+str(epoch)+'.pth'
         torch.save(model, save_path)
-        writer.add_scalar('Loss/train'+data_str, train_loss[epoch], epoch)
-        writer.add_scalar('Loss/val'+data_str, test_loss[epoch], epoch)
+        writer.add_scalar('Loss/train/'+data_str, train_loss[epoch], epoch)
+        writer.add_scalar('Loss/val/'+data_str, test_loss[epoch], epoch)
 
 
 

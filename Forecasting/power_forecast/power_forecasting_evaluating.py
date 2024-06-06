@@ -1,24 +1,15 @@
 # 导入相关包
-import pandas as pd
-import numpy as np
-from matplotlib import pyplot as plt
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import mean_squared_error, mean_absolute_error
 import math
-import os
 import torch
-from torch import nn
-import torch.optim as optim
-from torch.utils.tensorboard import SummaryWriter
-from torch.utils.data import TensorDataset, DataLoader
-import json
 import yaml
 import joblib
+import numpy as np
 from datetime import datetime
-
-from Models.lstm_net import lstm_net
+from matplotlib import pyplot as plt
+from sklearn.metrics import mean_squared_error, mean_absolute_error
 from utils.data_process.power_data_process import power_process
 
+from torch.utils.tensorboard import SummaryWriter
 
 
 def evaluate_model(data_str='data1', writer=None, config_path='utils/configs/power_forecasting/lstm_power_forecasting.yaml'):
