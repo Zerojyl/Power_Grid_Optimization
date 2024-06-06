@@ -7,7 +7,7 @@ model_config:
     load_before_training: False
     load_model_path: null
     save_model_dir: 'Models/load_forecasting/data1/'
-    predict_model_path: 'Models/power_forecasting/data1/load_forecasting_epoch_19.pth'
+    predict_model_path: 'Models/load_forecasting/data1/load_forecasting_epoch_19.pth'
 
 tensorboard_save:
   tensorboard_train_dir: 'tensorboard_log/load_forecasting_training'

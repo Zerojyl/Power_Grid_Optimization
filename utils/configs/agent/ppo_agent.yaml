@@ -1,0 +1,3 @@
+tensorboard_save:
+  tensorboard_train_dir: 'tensorboard_log/agent_training'
+  tensorboard_eval_dir: 'tensorboard_log/agent_eval'

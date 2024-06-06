@@ -173,6 +173,7 @@ class PowerSystemEnv(gym.Env):
         # 运行电网进行潮流计算
         pp.runpp(self.network,numba=False)
         wind_power, load, losses, voltage, ext_grid  = self.get_observation()
+        
         next_state = list(wind_power) + list(load) + list(losses) + list(voltage) + list(ext_grid)
 
         # if ext_grid < 0:
