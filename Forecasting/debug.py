@@ -1,16 +1,17 @@
 import pandas as pd
+import numpy as np
 import yaml
 import torch
 import joblib
+# /home/zero/project/Power_Grid_Optimization/Data/load_data/load_data.csv
+load_path = '/home/zero/project/Power_Grid_Optimization/Data/load_data/load_data.csv'
+power1_path='/home/zero/project/Power_Grid_Optimization/Data/power_data/merged_power_data1.csv'
+power2_path='/home/zero/project/Power_Grid_Optimization/Data/power_data/merged_power_data2.csv'
+power3_path='/home/zero/project/Power_Grid_Optimization/Data/power_data/merged_power_data3.csv'
+power4_path='/home/zero/project/Power_Grid_Optimization/Data/power_data/merged_power_data4.csv'
 
-load_path = 'C:/project/Electric-innovation-competition/Power_Grid_Optimization/Data/load_data/load_data.csv'
-power1_path='C:/project/Electric-innovation-competition/Power_Grid_Optimization/Data/power_data/merged_power_data1.csv'
-power2_path='C:/project/Electric-innovation-competition/Power_Grid_Optimization/Data/power_data/merged_power_data2.csv'
-power3_path='C:/project/Electric-innovation-competition/Power_Grid_Optimization/Data/power_data/merged_power_data3.csv'
-power4_path='C:/project/Electric-innovation-competition/Power_Grid_Optimization/Data/power_data/merged_power_data4.csv'
-
-power_yaml_path = 'C:/project/Electric-innovation-competition/Power_Grid_Optimization/utils/configs/power_forecasting/lstm_power_forecasting.yaml'
-load_yaml_path = 'C:/project/Electric-innovation-competition/Power_Grid_Optimization/utils/configs/load_forecasting/lstm_load_forecasting.yaml'
+power_yaml_path = '/home/zero/project/Power_Grid_Optimization/utils/configs/power_forecasting/lstm_power_forecasting.yaml'
+load_yaml_path = '/home/zero/project/Power_Grid_Optimization/utils/configs/load_forecasting/lstm_load_forecasting.yaml'
 data_str = 'data2'
 
 class csv2df:
@@ -40,9 +41,14 @@ class predict_class(csv2df):
         self.model = self.model_load()
         self.history_step = self.config['data_config']['previous_step']
         self.forecast_step = self.config['data_config']['forecast_step']
+
         self.scaler_path = self.config['data_config'][self.data_str]['scaler_save_path']
         self.scaler = joblib.load(self.scaler_path)
         self.scaled_df = self.df_scale()
+
+        self.target_column = self.config['data_config']['target_features']
+        self.target_column_index = self.scaled_df.columns.get_indexer(self.target_column)
+        self.column_len = len(self.scaled_df.columns)
 
 
     def model_load(self):
@@ -53,6 +59,7 @@ class predict_class(csv2df):
     def get_data(self, point_step, base_time='2019-01-05 00:00:00', history = True):
         base_time = pd.Timestamp(base_time)
         cur_time = base_time + pd.Timedelta(hours=point_step/4)
+
         if history:
             time_list = [cur_time - pd.Timedelta(hours=point_step/4*i) for i in range(self.history_step+1, 0, -1)]
         else:
@@ -80,7 +87,18 @@ class predict_class(csv2df):
         scaled_df = pd.DataFrame(values, columns=columns)
         return scaled_df
     
-    # def df_inverse()
+    def predict_inverse(self, predicted_data):
+        predicted_data = predicted_data.reshape(-1, len(self.target_column_index))
+        assert predicted_data.size()[0] == 1
+        temp_predicted_data = np.oneslike(self.scaled_df.values)
+        for i, target_index in enumerate(self.target_column_index):
+            temp_predicted_data[:, target_index] = predicted_data[:, i]
+        temp_predicted_data = self.scaler.inverse_transform(temp_predicted_data)
+        predicted_data_inver_tran = temp_predicted_data[:, self.target_column_index]
+        return predicted_data_inver_tran
+
+
+         
     
 
     def predict(self, point_step, base_time='2019-01-05 00:00:00'):
@@ -93,7 +111,7 @@ class predict_class(csv2df):
             predict_result = self.model(data_pre_cur, data_forecast)
         else:
             predict_result = self.model(data_pre_cur)
-        return predict_result
+        return predict_result.squeeze().cpu().numpy()
 
 # power2_class = predict_class(power_yaml_path, data_str, power2_path)
 # predict_result = power2_class.predict(7)
@@ -101,4 +119,9 @@ class predict_class(csv2df):
 
 load1_class = predict_class(load_yaml_path, 'data1', load_path)
 predict_result = load1_class.predict(7) 
-print(predict_result)
+print('predicted result(scaled): ', predict_result)
+predict_result_inv = load1_class.predict_inverse(predict_result)
+print('predicted result(after inverse transform: ', predict_result_inv)
+
+
+

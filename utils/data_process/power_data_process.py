@@ -17,17 +17,21 @@ def power_process(yaml_path = 'utils/configs/power_forecasting/lstm_power_foreca
     y = my_dataset.target_df
     X1 = my_dataset.pre_curr_df
     X2 = my_dataset.fore_df
+
     y = y.values
     X1 = X1.values
     X2 = X2.values
+
     pre_curr_steps = config['data_config']['previous_step']+1
     X1 = X1.reshape((X1.shape[0], pre_curr_steps, -1))
     y = y.reshape((y.shape[0], y.shape[1]))
+
     validation_split = config['data_config']['validation_split']
     train_len = int(len(y) * (1-validation_split))
     X1_train, X1_val = X1[:train_len], X1[train_len:]
     X2_train, X2_val = X2[:train_len], X2[train_len:]
     y_train, y_val = y[:train_len], y[train_len:]
+    
     # make dataloader
     X1_train = torch.from_numpy(X1_train).float()
     X2_train = torch.from_numpy(X2_train).float()
