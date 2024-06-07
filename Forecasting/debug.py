@@ -80,6 +80,8 @@ class predict_class(csv2df):
         scaled_df = pd.DataFrame(values, columns=columns)
         return scaled_df
     
+    # def df_inverse()
+    
 
     def predict(self, point_step, base_time='2019-01-05 00:00:00'):
         data_pre_cur = self.get_data(point_step, base_time, history=True)
