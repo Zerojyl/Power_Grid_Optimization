@@ -3,15 +3,15 @@ import numpy as np
 import yaml
 import torch
 import joblib
-# /home/zero/project/Power_Grid_Optimization/Data/load_data/load_data.csv
-load_path = '/home/zero/project/Power_Grid_Optimization/Data/load_data/load_data.csv'
-power1_path='/home/zero/project/Power_Grid_Optimization/Data/power_data/merged_power_data1.csv'
-power2_path='/home/zero/project/Power_Grid_Optimization/Data/power_data/merged_power_data2.csv'
-power3_path='/home/zero/project/Power_Grid_Optimization/Data/power_data/merged_power_data3.csv'
-power4_path='/home/zero/project/Power_Grid_Optimization/Data/power_data/merged_power_data4.csv'
+# C:\project\Electric-innovation-competition\Power_Grid_Optimization\Data\load_data
+load_path = 'C:/project/Electric-innovation-competition/Power_Grid_Optimization/Data/load_data/load_data.csv'
+power1_path='C:/project/Electric-innovation-competition/Power_Grid_Optimization/Data/power_data/merged_power_data1.csv'
+power2_path='C:/project/Electric-innovation-competition/Power_Grid_Optimization/Data/power_data/merged_power_data2.csv'
+power3_path='C:/project/Electric-innovation-competition/Power_Grid_Optimization/Data/power_data/merged_power_data3.csv'
+power4_path='C:/project/Electric-innovation-competition/Power_Grid_Optimization/Data/power_data/merged_power_data4.csv'
 
-power_yaml_path = '/home/zero/project/Power_Grid_Optimization/utils/configs/power_forecasting/lstm_power_forecasting.yaml'
-load_yaml_path = '/home/zero/project/Power_Grid_Optimization/utils/configs/load_forecasting/lstm_load_forecasting.yaml'
+power_yaml_path = 'C:/project/Electric-innovation-competition/Power_Grid_Optimization/utils/configs/power_forecasting/lstm_power_forecasting.yaml'
+load_yaml_path = 'C:/project/Electric-innovation-competition/Power_Grid_Optimization/utils/configs/load_forecasting/lstm_load_forecasting.yaml'
 data_str = 'data2'
 
 class csv2df:
@@ -21,13 +21,12 @@ class csv2df:
         self.df['time'] = pd.to_datetime(self.df['time'])
         self.df.set_index('time', inplace=True)
 
-    def get_data(self, base_time='2019-01-03 00:00:00', point_step = 7, history_step = 4):
+    def get_data(self, base_time='2019-01-05 00:00:00', point_step = 7, history_step = 4):
         base_time = pd.Timestamp(base_time)
         cur_time = base_time + pd.Timedelta(hours=point_step/4)
-        time_list = [cur_time - pd.Timedelta(hours=point_step/4*i) for i in range(history_step+1, 0, -1)]
+        time_list = [cur_time - pd.Timedelta(hours=i/4) for i in range(history_step, -1, -1)]
         for i in range(len(time_list)):
             assert time_list[i] in self.df.index, f'Timestamp {time_list[i]} not found in power1_df index'
-
         data = self.df.loc[time_list]
         return data
     
@@ -38,7 +37,8 @@ class predict_class(csv2df):
         self.data_str = data_str
         with open(yaml_path, 'r') as f:
             self.config = yaml.safe_load(f)
-        self.model = self.model_load()
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.model = self.model_load().to(self.device)
         self.history_step = self.config['data_config']['previous_step']
         self.forecast_step = self.config['data_config']['forecast_step']
 
@@ -61,13 +61,12 @@ class predict_class(csv2df):
         cur_time = base_time + pd.Timedelta(hours=point_step/4)
 
         if history:
-            time_list = [cur_time - pd.Timedelta(hours=point_step/4*i) for i in range(self.history_step+1, 0, -1)]
+            time_list = [cur_time - pd.Timedelta(hours=i/4) for i in range(self.history_step, -1, -1)]
         else:
-            time_list = [cur_time + pd.Timedelta(hours=point_step/4*i) for i in range(1, self.forecast_step+1)]
+            time_list = [cur_time + pd.Timedelta(hours=i/4) for i in range(1, self.forecast_step+1)]
         
         for i in range(len(time_list)):
             assert time_list[i] in self.df.index, f'Timestamp {time_list[i]} not found in power1_df index'
-        
         data = self.df.loc[time_list]
         if history:
             selected_features = self.config['data_config']['previous_features']
@@ -88,40 +87,58 @@ class predict_class(csv2df):
         return scaled_df
     
     def predict_inverse(self, predicted_data):
-        predicted_data = predicted_data.reshape(-1, len(self.target_column_index))
-        assert predicted_data.size()[0] == 1
-        temp_predicted_data = np.oneslike(self.scaled_df.values)
-        for i, target_index in enumerate(self.target_column_index):
-            temp_predicted_data[:, target_index] = predicted_data[:, i]
-        temp_predicted_data = self.scaler.inverse_transform(temp_predicted_data)
-        predicted_data_inver_tran = temp_predicted_data[:, self.target_column_index]
+        predicted_data = predicted_data.reshape(-1, self.forecast_step, len(self.target_column_index))
+        assert predicted_data.shape[0] == 1
+        temp_predicted_data = np.ones((predicted_data.shape[0], self.forecast_step, self.column_len))
+        for fore_index in range(self.forecast_step):
+            for i, target_index in enumerate(self.target_column_index):
+                temp_predicted_data[:, fore_index, target_index] = predicted_data[:, fore_index, i]
+            # 反归一化
+            temp_predicted_data[:, fore_index, :] = self.scaler.inverse_transform(temp_predicted_data[:, fore_index, :])
+        predicted_data_inver_tran = temp_predicted_data[:, :, self.target_column_index]
+        predicted_data_inver_tran = predicted_data_inver_tran.reshape(self.forecast_step, len(self.target_column_index))
         return predicted_data_inver_tran
-
 
          
     
 
     def predict(self, point_step, base_time='2019-01-05 00:00:00'):
         data_pre_cur = self.get_data(point_step, base_time, history=True)
-        data_pre_cur = torch.tensor(data_pre_cur.values).float()
+        data_pre_cur = torch.tensor(data_pre_cur.values).float().to(self.device)
+        data_pre_cur = data_pre_cur.unsqueeze(0)
+        # print(data_pre_cur.size())
         data_forecast = self.get_data(point_step, base_time, history=False)
-        data_forecast = torch.tensor(data_forecast.values).float()
-        print(data_forecast)
+        data_forecast = torch.tensor(data_forecast.values).float().to(self.device)
         if data_forecast.size()[1] != 0:
+            data_forecast = data_forecast.reshape(1, -1)
             predict_result = self.model(data_pre_cur, data_forecast)
+            predict_result = predict_result.reshape(self.forecast_step, len(self.target_column_index))
         else:
             predict_result = self.model(data_pre_cur)
-        return predict_result.squeeze().cpu().numpy()
+            predict_result = predict_result.reshape(self.forecast_step, len(self.target_column_index))
+        
+        return predict_result.detach().cpu().numpy()
 
-# power2_class = predict_class(power_yaml_path, data_str, power2_path)
-# predict_result = power2_class.predict(7)
-# print(predict_result)
 
-load1_class = predict_class(load_yaml_path, 'data1', load_path)
-predict_result = load1_class.predict(7) 
-print('predicted result(scaled): ', predict_result)
-predict_result_inv = load1_class.predict_inverse(predict_result)
-print('predicted result(after inverse transform: ', predict_result_inv)
+power2_class = predict_class(power_yaml_path, data_str, power2_path)
+predict_result = power2_class.predict(7)
+print(predict_result)# shape: (forecast_step, target_column_index)
+
+# # 读取特定时间点的数据
+# original_data = csv2df(load_path)
+# data_read = original_data.get_data(point_step = 10, history_step = 0)
+# print(data_read)
+
+# # 调用模型进行预测
+# load1_class = predict_class(load_yaml_path, 'data1', load_path)
+# predict_result = load1_class.predict(point_step = 10) 
+# print('predicted result(scaled) shape: ', predict_result.shape)
+# predict_result_inv = load1_class.predict_inverse(predict_result)
+# print('predicted result(after inverse transform) shape: ', predict_result_inv.shape)
+
+
+
+
 
 
 

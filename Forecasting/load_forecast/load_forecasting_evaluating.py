@@ -7,7 +7,7 @@ import numpy as np
 from datetime import datetime
 from matplotlib import pyplot as plt
 from sklearn.metrics import mean_squared_error, mean_absolute_error
-from utils.data_process.power_data_process import power_process
+from utils.data_process.load_data_process import load_process
 
 from torch.utils.tensorboard import SummaryWriter
 
@@ -31,7 +31,7 @@ def evaluate_model(data_str='data1', config_path='utils/configs/load_forecasting
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     model.to(device)
     scaler = joblib.load(config['data_config'][data_str]['scaler_save_path'])
-    for i, (X1, y) in enumerate(train_dataloader):
+    for i, (X1, y) in enumerate(test_dataloader):
         X1 = X1.to(device)
         y = y.to(device)
         y_pred = model(X1)
@@ -51,8 +51,8 @@ def evaluate_model(data_str='data1', config_path='utils/configs/load_forecasting
     print(true_data.shape)
     assert predicted_data.shape == true_data.shape 
     predict_time = predicted_data.shape[1]
-    temp_predicted_data = np.ones((len(predicted_data), predict_time, original_col_len))
-    temp_true_data = np.ones((len(predicted_data), predict_time, original_col_len))    
+    temp_predicted_data = np.ones((predicted_data.shape[0], predict_time, original_col_len))
+    temp_true_data = np.ones((predicted_data.shape[0], predict_time, original_col_len))    
     for i in range(predict_time):
         for j, index in enumerate(target_index):
             temp_predicted_data[:,i,index] = predicted_data[:,i,j]
@@ -72,8 +72,9 @@ def evaluate_model(data_str='data1', config_path='utils/configs/load_forecasting
     
 
     # 绘制预测图形
-    show_start = torch.randint(0, len(predicted_data)-1000, (1,)).item()
-    show_end = show_start + 100
+    show_start = torch.randint(0, len(predicted_data)-1000, (1,)).item()    
+    show_start = 4000
+    show_end = show_start + 96*5
     plt.figure(facecolor='white')
     for i in range(predict_time):   
         plt.subplot(predict_time, 1, i+1)
@@ -81,6 +82,9 @@ def evaluate_model(data_str='data1', config_path='utils/configs/load_forecasting
         plt.plot(temp_predicted_data[show_start:show_end,i,target_index[0]], label='Prediction')
         plt.title('time step:{}min'.format(i*15+15))
         plt.legend()
+    # plt.plot(temp_predicted_data[show_start, :, target_index[0]], label='Prediction', color='red', linestyle='--', linewidth=2)
+    # plt.plot(temp_true_data[show_start, :, target_index[0]], label='True Data', color='blue', linestyle='--', linewidth=2)
+    
     plt.show()
     writer.add_figure('Prediction vs True Data', plt.gcf())
 
