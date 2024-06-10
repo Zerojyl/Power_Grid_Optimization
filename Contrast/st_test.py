@@ -6,7 +6,7 @@ import pandapower as pp
 import copy
 import json
 
-iterations = 96
+iterations = 288
 
 np.random.seed(17) #设置随机种子
 env = TrainEnv()  # 创建环境

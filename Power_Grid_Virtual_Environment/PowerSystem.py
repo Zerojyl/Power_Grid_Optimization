@@ -44,7 +44,7 @@ class PowerSystemEnv(gym.Env):
 
         self.wind_k = 0.04 # 风电功率系数，最大风电功率为100MW，实际单风机一般不超过6MW
         self.loss_k = 100 # 线路损耗奖励比例
-        self.inverse_k = 20  # 逆馈信息奖励比例
+        self.inverse_k = 50  # 逆馈信息奖励比例
         # 预测模型读入
         self.load_pre = predict_class(load_yaml_path, 'data1', load_path)
         self.power1_pre = predict_class(power_yaml_path, 'data1', power1_path)
@@ -90,8 +90,7 @@ class PowerSystemEnv(gym.Env):
         self.network.gen.at[2,"p_mw"] = self.wind_k*\
             self.power3_data.get_data(point_step = self.time_flag, history_step = 0).loc[:,'power'].values[0]
         self.network.gen.at[3,"p_mw"] = self.wind_k*\
-            self.power4_data.get_data(point_step = self.time_flag, history_step = 0).loc[:,'power'].values[0]
-        
+            self.power4_data.get_data(point_step = self.time_flag, history_step = 0).loc[:,'power'].values[0]    
         # 进行潮流计算
         pp.runpp(self.network,numba=False)              
         

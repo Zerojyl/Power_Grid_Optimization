@@ -9,22 +9,28 @@ import random
 import networkx as nx
 import matplotlib.pyplot as plt
 import time
-bus_vn_kv = 12.66 # 各节点额定电压
+from utils.data_process.data_read import csv2df
 
+bus_vn_kv = 12.66 # 各节点额定电压
+load_path = './Data/load_data/load_data.csv'
+power1_path = './Data/power_data/merged_power_data1.csv'
+power2_path='./Data/power_data/merged_power_data2.csv'
+power3_path='./Data/power_data/merged_power_data3.csv'
+power4_path='./Data/power_data/merged_power_data4.csv'
+power_yaml_path = './utils/configs/power_forecasting/lstm_power_forecasting.yaml'
+load_yaml_path = './utils/configs/load_forecasting/lstm_load_forecasting.yaml'
+data_str = 'data2'
 class PowerSystemEnv():
     def __init__(self):
         self.network = self.configure_power_network() # 创建自定义的电力系统网络
         self.time_flag = 0  # 时间标志
-        # 读入负载数据集    
-        data = pd.read_csv('./data/load_data.csv',encoding='GBK')
-        load_columns = ['时间'] + ['负载{}'.format(i) for i in range(1, 33)]
-        data.columns = load_columns
-        self.load_data  = data.to_numpy()
+        # 读入负载数据集 
+        self.load_data = csv2df(load_path)
         # 读入风电数据集
-        data_wind_power = pd.read_csv('./data/power_data.csv',encoding='GBK')
-        wind_power_columns = ['时间'] + ['风电{}'.format(i) for i in range(1, 5)]
-        data_wind_power.columns = wind_power_columns
-        self.power_data = data_wind_power.to_numpy()
+        self.power1_data = csv2df(power1_path)
+        self.power2_data = csv2df(power2_path)
+        self.power3_data = csv2df(power3_path)
+        self.power4_data = csv2df(power4_path)
         self.wind_k = 0.04 # 风电功率系数，最大风电功率为100MW，实际单风机一般不超过6MW
 
     # 重置电力系统环境
@@ -43,13 +49,20 @@ class PowerSystemEnv():
         
         # 负载初始化
         for i in range(0,32) :
-            self.network.load.at[i,"scaling"] = self.load_data[self.time_flag, i+1]
+            self.network.load.at[i,"scaling"] = \
+                self.load_data.get_data(point_step = self.time_flag, history_step = 0).values[0,i]
         # 风电初始化
-        for j in range(0,4) :
-            self.network.gen.at[j,"p_mw"] = self.wind_k*self.power_data[self.time_flag, j+1]
-        print("初始化成功！当前时间为：")    
-        self.print_time(self.time_flag)
-
+        self.network.gen.at[0,"p_mw"] = self.wind_k*\
+            self.power1_data.get_data(point_step = self.time_flag, history_step = 0).loc[:,'power'].values[0]
+        self.network.gen.at[1,"p_mw"] = self.wind_k*\
+            self.power2_data.get_data(point_step = self.time_flag, history_step = 0).loc[:,'power'].values[0]
+        self.network.gen.at[2,"p_mw"] = self.wind_k*\
+            self.power3_data.get_data(point_step = self.time_flag, history_step = 0).loc[:,'power'].values[0]
+        self.network.gen.at[3,"p_mw"] = self.wind_k*\
+            self.power4_data.get_data(point_step = self.time_flag, history_step = 0).loc[:,'power'].values[0] 
+        
+        print("初始化成功！当前时刻为：")
+        print(self.load_data.get_data(point_step = self.time_flag, history_step = 0).index[-1])
         return  self.network
 
     # 执行动作
@@ -58,23 +71,20 @@ class PowerSystemEnv():
         self.time_flag = self.time_flag + 1 
         # 更新负载参数
         for i in range(0,32) :
-            self.network.load.at[i,"scaling"] = self.load_data[self.time_flag, i+1]
+            self.network.load.at[i,"scaling"] = \
+                self.load_data.get_data(point_step = self.time_flag, history_step = 0).values[0,i]
         # 更新发电机参数
-        for j in range(0,4) :
-            self.network.gen.at[j,"p_mw"] = self.wind_k*self.power_data[self.time_flag, j+1] 
-
-        print("当前时间为：")
-        self.print_time(self.time_flag)
+        self.network.gen.at[0,"p_mw"] = self.wind_k*\
+            self.power1_data.get_data(point_step = self.time_flag, history_step = 0).loc[:,'power'].values[0]
+        self.network.gen.at[1,"p_mw"] = self.wind_k*\
+            self.power2_data.get_data(point_step = self.time_flag, history_step = 0).loc[:,'power'].values[0]
+        self.network.gen.at[2,"p_mw"] = self.wind_k*\
+            self.power3_data.get_data(point_step = self.time_flag, history_step = 0).loc[:,'power'].values[0]
+        self.network.gen.at[3,"p_mw"] = self.wind_k*\
+            self.power4_data.get_data(point_step = self.time_flag, history_step = 0).loc[:,'power'].values[0]
+        print("初始化成功！当前时刻为：")
+        print(self.load_data.get_data(point_step = self.time_flag, history_step = 0).index[-1])
         return self.network
-
-    def print_time(self, time_flag):
-        base_time = datetime.datetime(2019, 1, 1, 0, 0)
-        delta = datetime.timedelta(minutes=15)
-        days_to_add = time_flag // 96  # 96个15分钟为一天
-        current_time = base_time + datetime.timedelta(days=days_to_add)
-        minutes_to_add = time_flag % 96  # 96个15分钟
-        current_time += datetime.timedelta(minutes=15 * minutes_to_add)
-        print(current_time.strftime("%Y/%m/%d %H:%M"))
 
     # 配置电力系统网络
     def configure_power_network(self) :
