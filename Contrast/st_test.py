@@ -6,7 +6,7 @@ import pandapower as pp
 import copy
 import json
 
-iterations = 16
+iterations = 96
 
 np.random.seed(17) #设置随机种子
 env = TrainEnv()  # 创建环境
@@ -22,8 +22,7 @@ last_action = 0
 num_switch_changes = 0 # 线路开关操作次数
 
 for i in range(iterations):
-    time_flag = env.env.load_data[env.env.time_flag, 0]
-    print('time_flag:', time_flag)
+
     action = 0 
     obs, reward, done, info = env.step(action)
     

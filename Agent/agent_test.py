@@ -6,7 +6,7 @@ import json
 from PPOAgent import PPOAgent
 
 
-iterations = 16
+iterations = 96
 
 np.random.seed(17) #设置随机种子
 env = TrainEnv()  # 创建环境
@@ -25,8 +25,7 @@ last_action_actually = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0]
 
 for i in range(iterations):
 
-    time_flag = env.env.load_data[env.env.time_flag, 0]
-    print('time_flag:', time_flag)
+
     action = agent.act(obs)
     obs, reward, done, info = env.step(action)
 

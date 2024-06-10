@@ -7,8 +7,6 @@ import torch
 print(torch.cuda.is_available())
 import os
 tensorboard_log_dir = os.path.abspath('./tensorboard_log')
-
-
 def make_env(seed=0):
     """
     Utility function for multiprocessed env.
@@ -24,7 +22,7 @@ def make_env(seed=0):
 
 
 def agent_train(train_sample):
-    num_cpu = 12 # 多进程数量
+    num_cpu = 4 # 多进程数量
     env = SubprocVecEnv([make_env() for _ in range(num_cpu)]) # 创建多进程环境
     tensorboard_log = tensorboard_log_dir # tensorboard日志文件的绝对路径,TensorBoard是一个可视化工具，用于展示模型训练过程中的各种指标。
     policy_kwargs = dict(activation_fn=torch.nn.Tanh, net_arch=dict(pi=[256, 256], vf=[256, 256])) # 包含了神经网络的激活函数和网络结构。
