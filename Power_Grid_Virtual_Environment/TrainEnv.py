@@ -6,7 +6,7 @@ class TrainEnv(gym.Env):
     def __init__(self):
         self.env = PowerSystemEnv()
         self.action_space = gym.spaces.Discrete(28)
-        self.observation_space = gym.spaces.Box(low=-50, high=50, shape=(107,), dtype=np.float32)
+        self.observation_space = gym.spaces.Box(low=-50, high=50, shape=(323,), dtype=np.float32)
     
     def reset(self, sample_idx=None):
 

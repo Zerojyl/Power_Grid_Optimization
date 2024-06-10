@@ -27,7 +27,7 @@ line_simply = [0, 1, 2, 5, 7, 8, 11, 14, 17, 20, 21, 24, 28, 34, 32, 33, 36, 35]
 
 class PowerSystemEnv(gym.Env):
     
-    def __init__(self, load_data_path='Data/load_data/load_data.csv', power_data_path='Data/power_data/power_data.csv'):
+    def __init__(self):
         super(PowerSystemEnv, self).__init__()
         self.network = self.configure_power_network() # 创建自定义的电力系统网络
         self.time_flag = 0  # 时间标志
@@ -35,19 +35,22 @@ class PowerSystemEnv(gym.Env):
         self.round = 0 
         self.rounf_max = 192 # 一天96个时间片，共2天
         # 读入负载数据集 
-
-        data = pd.read_csv(load_data_path,encoding='GBK')
-        load_columns = ['时间'] + ['负载{}'.format(i) for i in range(1, 33)]
-        data.columns = load_columns
-        self.load_data  = data.to_numpy()
+        self.load_data = csv2df(load_path)
         # 读入风电数据集
-        data_wind_power = pd.read_csv(power_data_path,encoding='GBK')
-        wind_power_columns = ['时间'] + ['风电{}'.format(i) for i in range(1, 5)]
-        data_wind_power.columns = wind_power_columns
-        self.power_data = data_wind_power.to_numpy()
+        self.power1_data = csv2df(power1_path)
+        self.power2_data = csv2df(power2_path)
+        self.power3_data = csv2df(power3_path)
+        self.power4_data = csv2df(power4_path)
+
         self.wind_k = 0.04 # 风电功率系数，最大风电功率为100MW，实际单风机一般不超过6MW
         self.loss_k = 10 # 线路损耗奖励比例
         self.inverse_k = 5  # 逆馈信息奖励比例
+        # 预测模型读入
+        self.load_pre = predict_class(load_yaml_path, 'data1', load_path)
+        self.power1_pre = predict_class(power_yaml_path, 'data1', power1_path)
+        self.power2_pre = predict_class(power_yaml_path, 'data1', power2_path)
+        self.power3_pre = predict_class(power_yaml_path, 'data1', power3_path)
+        self.power4_pre = predict_class(power_yaml_path, 'data1', power4_path)
         # 实际的动作指令
         self.action_actually =[
             [1, 1, 1, 1, 1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0] ,
@@ -94,7 +97,7 @@ class PowerSystemEnv(gym.Env):
     def reset(self, sample_idx=None):
 
         if sample_idx is None:
-            self.time_flag = random.randint(0,10000)
+            self.time_flag = random.randint(0,1000)
         else :
             self.time_flag = sample_idx
         # 初始化电网拓扑
@@ -107,10 +110,18 @@ class PowerSystemEnv(gym.Env):
         
         # 负载初始化
         for i in range(0,32) :
-            self.network.load.at[i,"scaling"] = self.load_data[self.time_flag, i+1]
+            self.network.load.at[i,"scaling"] = \
+                self.load_data.get_data(point_step = self.time_flag, history_step = 0).values[0,i]
         # 风电初始化
-        for j in range(0,4) :
-            self.network.gen.at[j,"p_mw"] = self.wind_k*self.power_data[self.time_flag, j+1]    
+        self.network.gen.at[0,"p_mw"] = self.wind_k*\
+            self.power1_data.get_data(point_step = self.time_flag, history_step = 0).loc[:,'power'].values[0]
+        self.network.gen.at[1,"p_mw"] = self.wind_k*\
+            self.power2_data.get_data(point_step = self.time_flag, history_step = 0).loc[:,'power'].values[0]
+        self.network.gen.at[2,"p_mw"] = self.wind_k*\
+            self.power3_data.get_data(point_step = self.time_flag, history_step = 0).loc[:,'power'].values[0]
+        self.network.gen.at[3,"p_mw"] = self.wind_k*\
+            self.power4_data.get_data(point_step = self.time_flag, history_step = 0).loc[:,'power'].values[0]
+        
 
         # 进行潮流计算
         pp.runpp(self.network,numba=False)              
@@ -121,7 +132,7 @@ class PowerSystemEnv(gym.Env):
         
         state = list(wind_power) + list(load) + list(losses) + list(voltage) + list(ext_grid)
         print("初始化成功！当前时刻为：")
-        self.print_time(self.time_flag)
+        print(self.load_data.get_data(point_step = self.time_flag, history_step = 0).index[-1])
         
         return  np.array(state)
 
@@ -174,17 +185,32 @@ class PowerSystemEnv(gym.Env):
         self.action_last = self.action_actually[action]
         self.time_flag = self.time_flag + 1 
         
+        # # 更新负载参数
+        # for i in range(0,32) :
+        #     self.network.load.at[i,"scaling"] = self.load_data[self.time_flag, i+1]
+        # # 更新发电机参数
+        # for j in range(0,4) :
+        #     self.network.gen.at[j,"p_mw"] = self.wind_k*self.power_data[self.time_flag, j+1] 
+        
         # 更新负载参数
         for i in range(0,32) :
-            self.network.load.at[i,"scaling"] = self.load_data[self.time_flag, i+1]
+            self.network.load.at[i,"scaling"] = \
+                self.load_data.get_data(point_step = self.time_flag, history_step = 0).values[0,i]
         # 更新发电机参数
-        for j in range(0,4) :
-            self.network.gen.at[j,"p_mw"] = self.wind_k*self.power_data[self.time_flag, j+1] 
+        self.network.gen.at[0,"p_mw"] = self.wind_k*\
+            self.power1_data.get_data(point_step = self.time_flag, history_step = 0).loc[:,'power'].values[0]
+        self.network.gen.at[1,"p_mw"] = self.wind_k*\
+            self.power2_data.get_data(point_step = self.time_flag, history_step = 0).loc[:,'power'].values[0]
+        self.network.gen.at[2,"p_mw"] = self.wind_k*\
+            self.power3_data.get_data(point_step = self.time_flag, history_step = 0).loc[:,'power'].values[0]
+        self.network.gen.at[3,"p_mw"] = self.wind_k*\
+            self.power4_data.get_data(point_step = self.time_flag, history_step = 0).loc[:,'power'].values[0]
+        
         # 运行电网进行潮流计算
         pp.runpp(self.network,numba=False)
         wind_power, load, losses, voltage, ext_grid  = self.get_observation()
-        
-        next_state = list(wind_power) + list(load) + list(losses) + list(voltage) + list(ext_grid)
+        load_pre, power_pre = self.get_predict_data()
+        next_state = list(wind_power) + list(load) + list(losses) + list(voltage) + list(ext_grid) + list(load_pre) + list(power_pre)
 
         # if ext_grid < 0:
         #     info = ext_grid[0] * 1000 # 倒送功率 kw
@@ -257,13 +283,26 @@ class PowerSystemEnv(gym.Env):
         return self.network, reward
     # 获取观测状态
     def get_observation(self):
-        wind_power = self.power_data[self.time_flag,1:]
-        load = self.load_data[self.time_flag, 1:]
+        wind_power1 = self.power1_data.get_data(point_step = self.time_flag, history_step = 0).loc[:,'power'].values[0]
+        wind_power2 = self.power2_data.get_data(point_step = self.time_flag, history_step = 0).loc[:,'power'].values[0]
+        wind_power3 = self.power3_data.get_data(point_step = self.time_flag, history_step = 0).loc[:,'power'].values[0]
+        wind_power4 = self.power4_data.get_data(point_step = self.time_flag, history_step = 0).loc[:,'power'].values[0]
+        wind_power = [wind_power1, wind_power2, wind_power3, wind_power4]
+        load = self.load_data.get_data(point_step = self.time_flag, history_step = 0).values[0]
         losses = self.network.res_line['pl_mw'].values
         voltage = self.network.res_bus['vm_pu'].values
         ext_grid = self.network.res_ext_grid['p_mw'].values
         return  wind_power, load, losses, voltage, ext_grid
-    
+    # 获取预测数据git 
+    def get_predict_data(self):
+        load = self.load_pre.predict(point_step = self.time_flag).flatten().tolist()
+        power1 = self.power1_pre.predict(point_step = self.time_flag).flatten().tolist()
+        power2 = self.power2_pre.predict(point_step = self.time_flag).flatten().tolist()
+        power3 = self.power3_pre.predict(point_step = self.time_flag).flatten().tolist()
+        power4 = self.power4_pre.predict(point_step = self.time_flag).flatten().tolist()
+        power = power1 + power2 + power3 + power4
+        return load, power
+
     # 获取网损
     def get_losses(self):
         loss_kw = 1000 * self.network.res_line['pl_mw'].sum() # 线路损耗功率 kw
@@ -277,7 +316,8 @@ class PowerSystemEnv(gym.Env):
         reward_1 = -loss_sum #线路损耗的惩罚项 
         # print("reward_1:",reward_1)
         
-        # reward_2 节点电压的稳定 GB：用户供电电压的允许偏移对于35 kV 及以上电压级为额定值的±5 % ，对于10 kV 及以下电压级为额定值的±7%
+        # reward_2 节点电压的稳定 GB：用户供电电压的允许偏移对于35 kV 及以上电压级为额定值的±5 % ，
+        # 对于10 kV 及以下电压级为额定值的±7%
         reward_2 = 0
         number_stable = self.voltage_stabilise(voltage) # 稳定节点的个数，0-33
         # 不稳定项作为惩罚项
@@ -492,3 +532,8 @@ class PowerSystemEnv(gym.Env):
 
 
         return net
+
+if __name__ == "__main__":
+    env = PowerSystemEnv()
+    state = env.reset()
+    print(state)
