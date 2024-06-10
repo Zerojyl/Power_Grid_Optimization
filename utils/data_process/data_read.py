@@ -98,16 +98,18 @@ class predict_class(csv2df):
 
     def predict(self, point_step, base_time='2019-01-05 00:00:00'):
         data_pre_cur = self.get_data(point_step, base_time, history=True)
-        print('check point 3', data_pre_cur.shape)
+        # print('check point 3', data_pre_cur.shape)
         data_pre_cur = torch.tensor(data_pre_cur.values).float().to(self.device)
         data_pre_cur = data_pre_cur.unsqueeze(0)
-        print('check point 4', data_pre_cur.size())
+        # print('check point 4', data_pre_cur.size())
         # print(data_pre_cur.size())
         data_forecast = self.get_data(point_step, base_time, history=False)
         data_forecast = torch.tensor(data_forecast.values).float().to(self.device)
         # print(data_forecast)
         if data_forecast.size()[1] != 0:
-            data_forecast =  data_forecast.reshape(1, -1)
+            # print('check point 5', data_forecast.size())
+            data_forecast = data_forecast.reshape(1, -1)
+            # print('check point 6', data_forecast.size())
             predict_result = self.model(data_pre_cur, data_forecast)
             predict_result = predict_result.reshape(self.forecast_step, len(self.target_column_index))
         else:
@@ -149,7 +151,7 @@ if __name__ == '__main__':
 
     # 读取特定时间点的数据
     original_data = csv2df(power1_path)
-    data_read = original_data.get_data(point_step = 20, history_step = 0)
+    data_read = original_data.get_data(point_step = 10, history_step = 0)
     print(data_read)
 
     # 调用模型进行预测
