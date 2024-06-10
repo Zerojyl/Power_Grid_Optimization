@@ -7,7 +7,17 @@ import json
 import random
 import networkx as nx
 import matplotlib.pyplot as plt
+from utils.data_process.data_read import csv2df
+from utils.data_process.data_read import predict_class
 
+load_path = './Data/load_data/load_data.csv'
+power1_path = './Data/power_data/merged_power_data1.csv'
+power2_path='./Data/power_data/merged_power_data2.csv'
+power3_path='./Data/power_data/merged_power_data3.csv'
+power4_path='./Data/power_data/merged_power_data4.csv'
+power_yaml_path = './utils/configs/power_forecasting/lstm_power_forecasting.yaml'
+load_yaml_path = './utils/configs/load_forecasting/lstm_load_forecasting.yaml'
+data_str = 'data2'
 
 pd.options.mode.chained_assignment = None
 bus_vn_kv = 12.66 # 各节点额定电压
@@ -24,7 +34,8 @@ class PowerSystemEnv(gym.Env):
         self.action_last= [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0, 0]
         self.round = 0 
         self.rounf_max = 192 # 一天96个时间片，共2天
-        # 读入负载数据集    
+        # 读入负载数据集 
+
         data = pd.read_csv(load_data_path,encoding='GBK')
         load_columns = ['时间'] + ['负载{}'.format(i) for i in range(1, 33)]
         data.columns = load_columns
