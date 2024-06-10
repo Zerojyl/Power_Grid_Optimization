@@ -5,6 +5,13 @@ import joblib
 from torch import nn
 from datetime import datetime
 import torch.optim as optim
+import sys
+import os
+
+# 获取项目根目录的绝对路径
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+# 将项目根目录添加到sys.path
+sys.path.append(project_root)
 from Models.lstm_net import load_lstm_net
 from utils.data_process.load_data_process import load_process
 from torch.utils.tensorboard import SummaryWriter

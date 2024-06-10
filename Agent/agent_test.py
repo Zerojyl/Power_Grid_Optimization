@@ -1,9 +1,9 @@
 from textwrap import indent
-from Environment.TrainEnv import TrainEnv
+from Power_Grid_Virtual_Environment.TrainEnv import TrainEnv
 import numpy as np
 import time 
 import json
-from agent.PPOAgent import PPOAgent
+from PPOAgent import PPOAgent
 
 
 iterations = 16

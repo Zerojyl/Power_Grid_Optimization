@@ -107,6 +107,7 @@ class predict_class(csv2df):
         data_forecast = torch.tensor(data_forecast.values).float().to(self.device)
         # print(data_forecast)
         if data_forecast.size()[1] != 0:
+            data_forecast =  data_forecast.reshape(1, -1)
             predict_result = self.model(data_pre_cur, data_forecast)
             predict_result = predict_result.reshape(self.forecast_step, len(self.target_column_index))
         else:
@@ -118,23 +119,43 @@ class predict_class(csv2df):
 
 if __name__ == '__main__':
     # change the path to your own path
-    load_path = 'C:/project/Electric-innovation-competition/Power_Grid_Optimization/Data/load_data/load_data.csv'
-    power1_path='C:/project/Electric-innovation-competition/Power_Grid_Optimization/Data/power_data/merged_power_data1.csv'
-    power2_path='C:/project/Electric-innovation-competition/Power_Grid_Optimization/Data/power_data/merged_power_data2.csv'
-    power3_path='C:/project/Electric-innovation-competition/Power_Grid_Optimization/Data/power_data/merged_power_data3.csv'
-    power4_path='C:/project/Electric-innovation-competition/Power_Grid_Optimization/Data/power_data/merged_power_data4.csv'
+    # load_path = './Data/load_data/load_data.csv'
+    load_path = './Data/load_data/load_data.csv'
+  
+    # 将下面的路径都改为相对路径
+    
+    power1_path = './Data/power_data/merged_power_data1.csv'
+    power2_path='./Data/power_data/merged_power_data2.csv'
+    power3_path='./Data/power_data/merged_power_data3.csv'
+    power4_path='./Data/power_data/merged_power_data4.csv'
 
-    power_yaml_path = 'C:/project/Electric-innovation-competition/Power_Grid_Optimization/utils/configs/power_forecasting/lstm_power_forecasting.yaml'
-    load_yaml_path = 'C:/project/Electric-innovation-competition/Power_Grid_Optimization/utils/configs/load_forecasting/lstm_load_forecasting.yaml'
+
+    power_yaml_path = './utils/configs/power_forecasting/lstm_power_forecasting.yaml'
+    load_yaml_path = './utils/configs/load_forecasting/lstm_load_forecasting.yaml'
     data_str = 'data2'
+    
+    # # 读取特定时间点的数据
+    # original_data = csv2df(load_path)
+    # data_read = original_data.get_data(point_step = 10, history_step = 0)
+    # print(data_read)
+
+    # # 调用模型进行预测
+    # load1_class = predict_class(load_yaml_path, 'data1', load_path)
+    # predict_result = load1_class.predict(point_step = 10) 
+    # print('predicted result(scaled): ', predict_result)
+    # print('predicted result(scaled) shape: ', predict_result.shape)
+    # predict_result_inv = load1_class.predict_inverse(predict_result)
+    # print('predicted result(after inverse transform) shape: ', predict_result_inv.shape)
+
     # 读取特定时间点的数据
-    original_data = csv2df(load_path)
-    data_read = original_data.get_data(point_step = 10, history_step = 0)
+    original_data = csv2df(power1_path)
+    data_read = original_data.get_data(point_step = 20, history_step = 0)
     print(data_read)
 
     # 调用模型进行预测
-    load1_class = predict_class(load_yaml_path, 'data1', load_path)
+    load1_class = predict_class(power_yaml_path, 'data1', power1_path)
     predict_result = load1_class.predict(point_step = 10) 
+    print('predicted result(scaled): ', predict_result)
     print('predicted result(scaled) shape: ', predict_result.shape)
     predict_result_inv = load1_class.predict_inverse(predict_result)
     print('predicted result(after inverse transform) shape: ', predict_result_inv.shape)

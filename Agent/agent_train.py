@@ -2,10 +2,11 @@ import time
 from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import SubprocVecEnv
 from stable_baselines3.common.evaluation import evaluate_policy
-from Environment.TrainEnv import TrainEnv
+from Power_Grid_Virtual_Environment.TrainEnv import TrainEnv
 import torch
 print(torch.cuda.is_available())
-from utils.settings import *
+import os
+tensorboard_log_dir = os.path.abspath('./tensorboard_log')
 
 
 def make_env(seed=0):

@@ -1,4 +1,3 @@
-
 import pandapower as pp
 import gym
 import pandas as pd
@@ -8,8 +7,8 @@ import json
 import random
 import networkx as nx
 import matplotlib.pyplot as plt
-import time
-import copy
+
+
 pd.options.mode.chained_assignment = None
 bus_vn_kv = 12.66 # 各节点额定电压
 line_simply = [0, 1, 2, 5, 7, 8, 11, 14, 17, 20, 21, 24, 28, 34, 32, 33, 36, 35] #简化后的线路（可控制开断的线路）
