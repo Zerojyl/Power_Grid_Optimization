@@ -9,7 +9,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 from utils.data_process.data_read import csv2df
 from utils.data_process.data_read import predict_class
-from action_space import action_all
+from Power_Grid_Virtual_Environment.action_space import action_all
 load_path = './Data/load_data/load_data.csv'
 power1_path = './Data/power_data/merged_power_data1.csv'
 power2_path='./Data/power_data/merged_power_data2.csv'
@@ -43,8 +43,8 @@ class PowerSystemEnv(gym.Env):
         self.power4_data = csv2df(power4_path)
 
         self.wind_k = 0.04 # 风电功率系数，最大风电功率为100MW，实际单风机一般不超过6MW
-        self.loss_k = 10 # 线路损耗奖励比例
-        self.inverse_k = 5  # 逆馈信息奖励比例
+        self.loss_k = 100 # 线路损耗奖励比例
+        self.inverse_k = 20  # 逆馈信息奖励比例
         # 预测模型读入
         self.load_pre = predict_class(load_yaml_path, 'data1', load_path)
         self.power1_pre = predict_class(power_yaml_path, 'data1', power1_path)
@@ -64,11 +64,12 @@ class PowerSystemEnv(gym.Env):
             }
         self.log_name = "unknow.json"
         self.printout = False
+        self.last_state = None
     # 重置电力系统环境
     def reset(self, sample_idx=None):
 
         if sample_idx is None:
-            self.time_flag = random.randint(0,1000)
+            self.time_flag = random.randint(0,10000)
         else :
             self.time_flag = sample_idx
         # 初始化电网拓扑
@@ -97,23 +98,28 @@ class PowerSystemEnv(gym.Env):
         # 获取初始观测状态
         wind_power, load, losses, voltage, ext_grid = self.get_observation()
         load_pre, power_pre = self.get_predict_data()
-
         state = list(wind_power) + list(load) + list(losses) + list(voltage) + list(ext_grid) + list(load_pre) + list(power_pre)
-
+        self.last_state = state
         print("初始化成功！当前时刻为：")
         print(self.load_data.get_data(point_step = self.time_flag, history_step = 0).index[-1])
-        
         return  np.array(state)
 
     # 执行动作
     def step(self, action):
     
-        if action in range(0,100):  # 如果action在0到200之间
+        if action in range(0,500):  # 如果action在0到200之间
             for j in range(0, 18):
                  self.network.line.at[line_simply[j], "in_service"] = bool(self.action_actually[action][j])
 
-        # 运行电网进行潮流计算    
-        pp.runpp(self.network, numba=False, max_iteration=10)
+        # 运行电网进行潮流计算   
+        try:
+            pp.runpp(self.network, numba=False, max_iteration=10)
+        except:
+            print("潮流计算失败，保持上一时刻状态")
+            for j in range(0, 18):
+                 self.network.line.at[line_simply[j], "in_service"] = bool(self.action_last[j])
+            return np.array(self.last_state), -10000, True, {}
+
         # 获取此时的电网状态，计算奖励
         wind_power, load, losses, voltage, ext_grid = self.get_observation()
         reward, reward_3 = self.compute_reward(losses, voltage, self.action_actually[action],ext_grid) # 这里输入单位均为mw级
@@ -150,12 +156,6 @@ class PowerSystemEnv(gym.Env):
         self.action_last = self.action_actually[action]
         self.time_flag = self.time_flag + 1 
         
-        # # 更新负载参数
-        # for i in range(0,32) :
-        #     self.network.load.at[i,"scaling"] = self.load_data[self.time_flag, i+1]
-        # # 更新发电机参数
-        # for j in range(0,4) :
-        #     self.network.gen.at[j,"p_mw"] = self.wind_k*self.power_data[self.time_flag, j+1] 
         
         # 更新负载参数
         for i in range(0,32) :
@@ -172,11 +172,18 @@ class PowerSystemEnv(gym.Env):
             self.power4_data.get_data(point_step = self.time_flag, history_step = 0).loc[:,'power'].values[0]
         
         # 运行电网进行潮流计算
-        pp.runpp(self.network,numba=False)
+        try:
+            pp.runpp(self.network,numba=False)
+        except:
+            print("潮流计算失败，保持上一时刻状态")
+            for j in range(0, 18):
+                 self.network.line.at[line_simply[j], "in_service"] = bool(self.action_last[j])
+            return np.array(self.last_state), -10000, True, {}
+        
         wind_power, load, losses, voltage, ext_grid  = self.get_observation()
         load_pre, power_pre = self.get_predict_data()
         next_state = list(wind_power) + list(load) + list(losses) + list(voltage) + list(ext_grid) + list(load_pre) + list(power_pre)
-
+        self.last_state = next_state
         # if ext_grid < 0:
         #     info = ext_grid[0] * 1000 # 倒送功率 kw
         # else:
@@ -473,7 +480,7 @@ class PowerSystemEnv(gym.Env):
         reward = 10 * reward_1 + reward_2 + reward_3 + 5 * reward_4
         
         if self.printout:
-            time_flag = self.load_data[self.time_flag, 0]
+            time_flag = self.load_data.get_data(point_step = self.time_flag, history_step = 0).index[-1].isoformat()
             loss_kw = 1000 * self.network.res_line['pl_mw'].sum() # 线路损耗功率 kw
             load_sum_kw = 1000 * self.network.res_load['p_mw'].sum() # 负载功率 kw
             wind_power_kw = 1000 * self.network.res_gen['p_mw'].sum() # 风电功率 kw
@@ -491,13 +498,20 @@ class PowerSystemEnv(gym.Env):
                 json.dump(self.log, f, indent=4)
         
         self.time_flag = self.time_flag + 1 
-        # 更新负载参数
+ # 更新负载参数
         for i in range(0,32) :
-            self.network.load.at[i,"scaling"] = self.load_data[self.time_flag, i+1]
+            self.network.load.at[i,"scaling"] = \
+                self.load_data.get_data(point_step = self.time_flag, history_step = 0).values[0,i]
         # 更新发电机参数
-        for j in range(0,4) :
-            self.network.gen.at[j,"p_mw"] = self.wind_k*self.power_data[self.time_flag, j+1] 
-
+        self.network.gen.at[0,"p_mw"] = self.wind_k*\
+            self.power1_data.get_data(point_step = self.time_flag, history_step = 0).loc[:,'power'].values[0]
+        self.network.gen.at[1,"p_mw"] = self.wind_k*\
+            self.power2_data.get_data(point_step = self.time_flag, history_step = 0).loc[:,'power'].values[0]
+        self.network.gen.at[2,"p_mw"] = self.wind_k*\
+            self.power3_data.get_data(point_step = self.time_flag, history_step = 0).loc[:,'power'].values[0]
+        self.network.gen.at[3,"p_mw"] = self.wind_k*\
+            self.power4_data.get_data(point_step = self.time_flag, history_step = 0).loc[:,'power'].values[0]
+        
         return self.network, reward
 if __name__ == "__main__":
     env = PowerSystemEnv()
