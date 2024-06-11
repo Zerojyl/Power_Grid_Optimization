@@ -82,7 +82,7 @@ class PowerSystemEnv():
             self.power3_data.get_data(point_step = self.time_flag, history_step = 0).loc[:,'power'].values[0]
         self.network.gen.at[3,"p_mw"] = self.wind_k*\
             self.power4_data.get_data(point_step = self.time_flag, history_step = 0).loc[:,'power'].values[0]
-        print("初始化成功！当前时刻为：")
+        print("当前时刻为：")
         print(self.load_data.get_data(point_step = self.time_flag, history_step = 0).index[-1])
         return self.network
 

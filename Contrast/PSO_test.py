@@ -19,7 +19,7 @@ log = {
 np.random.seed(17)
 iterations = 288
 env = PowerSystemEnv()
-sample_idx = np.random.randint(0, 15000) 
+sample_idx = np.random.randint(0, 10000) 
 env_network = env.reset(sample_idx=sample_idx)
 
 last_best = [32,33,34,35,36]
@@ -39,7 +39,7 @@ for i in range(iterations):
     
     reward_1 = 0
     loss = net.res_line["pl_mw"].sum()
-    reward_1 = -loss
+    reward_1 = -loss 
     reward_2 = 0
     voltage = net.res_bus['vm_pu'].values
     target_range=(0.95, 1.05)
@@ -58,7 +58,7 @@ for i in range(iterations):
         reward_4 -= ext_grid
     else:
         reward_4 = 0
-    reward = 10 * reward_1 + reward_2 + reward_3 + 5 * reward_4
+    reward = 100 * reward_1 + reward_2 + reward_3 + 0 * reward_4
 
     last_best = best
     log["time_flag"].append(time_flag)
@@ -68,6 +68,6 @@ for i in range(iterations):
     log["wind_power_kw"].append(wind_power_kw)
     log["inversely_kw"].append(inversely_kw)  
     log["num_switch_changes"].append(reward_3)
-    with open('PSO.json', 'w') as f:
+    with open('./results/PSO.json', 'w') as f:
         json.dump(log, f, indent=4)
     env_network = env.update_powersystem()

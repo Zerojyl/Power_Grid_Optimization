@@ -11,8 +11,8 @@ iterations = 288
 np.random.seed(17) #设置随机种子
 env = TrainEnv()  # 创建环境
 env.env.printout = True
-env.env.log_name = "st_test.json"
-sample_idx = np.random.randint(0, 15000) 
+env.env.log_name = "./results/st_test.json"
+sample_idx = np.random.randint(0, 10000) 
 obs = env.reset(sample_idx=sample_idx)
 
 ep_reward = 0 # 累计奖励
@@ -23,7 +23,7 @@ num_switch_changes = 0 # 线路开关操作次数
 
 for i in range(iterations):
 
-    action = 0 
+    action = 500
     obs, reward, done, info = env.step(action)
     
   
