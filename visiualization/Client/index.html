@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="cmn-Hans">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>区域电网自治运行导航</title>
+    <link rel="stylesheet" href="css/index.css" />
+  </head>
+  <body>
+    <!-- 头部 -->
+    <header>
+      <h1>区域电网自治运行导航</h1>
+      <div class="show-time"></div>
+      <script>
+        var t = null;
+        t = setTimeout(time, 1000); //开始运行
+        function time() {
+          clearTimeout(t); //清除定时器
+          dt = new Date();
+          var y = dt.getFullYear();
+          var mt = dt.getMonth() + 1;
+          var day = dt.getDate();
+          var h = dt.getHours(); //获取时
+          var m = dt.getMinutes(); //获取分
+          var s = dt.getSeconds(); //获取秒
+          document.querySelector(".show-time").innerHTML =
+            "当前时间：" +
+            y +
+            "年" +
+            mt +
+            "月" +
+            day +
+            "日-" +
+            h +
+            "时" +
+            m +
+            "分" +
+            s +
+            "秒";
+          t = setTimeout(time, 1000); //设定定时器，循环运行
+        }
+      </script>
+    </header>
+
+    <!-- 页面主体 -->
+    <section class="mainbox">
+      <!-- 左侧盒子 -->
+      <div class="column">
+        <div class="panel loads">
+          <h2>负载功率(MkW·h)： <button onclick="showSelect()" id="mainNumber" >1</button>
+            <a></a>
+          </h2>
+          <div id="numberSelect">
+            <select size="7" onchange="changeNumber(this.value)">
+              <option value="1">1</option>
+              <option value="2">2</option>
+              <option value="3">3</option>
+              <option value="4">4</option>
+              <option value="5">5</option>
+              <option value="6">6</option>
+              <option value="7">7</option>
+              <option value="8">8</option>
+              <option value="9">9</option>
+              <option value="10">10</option>
+              <option value="11">11</option>
+              <option value="12">12</option>
+              <option value="13">13</option>
+              <option value="14">14</option>
+              <option value="15">15</option>
+              <option value="16">16</option>
+              <option value="17">17</option>
+              <option value="18">18</option>
+              <option value="19">19</option>
+              <option value="20">20</option>
+              <option value="21">21</option>
+              <option value="22">22</option>
+              <option value="23">23</option>
+              <option value="24">24</option>
+              <option value="25">25</option>
+              <option value="26">26</option>
+              <option value="27">27</option>
+              <option value="28">28</option>
+              <option value="29">29</option>
+              <option value="30">30</option>
+              <option value="31">31</option>
+              <option value="32">32</option>
+            </select>
+          </div>
+          <!-- 图表放置盒子 -->
+          <div class="chart"></div>
+          <!-- 伪元素绘制盒子下边角 -->
+          <div class="panel-footer"></div>
+        </div>
+        <div class="panel wind_power">
+          <h2>风机功率(MkW·h)
+            <a class="a-active" href="javascript:;"><span>W<sub>1</sub></span></a>
+            <a href="javascript:;"><span>W<sub>2</sub></span></a>
+            <a href="javascript:;"><span>W<sub>3</sub></span></a>
+            <a href="javascript:;"><span>W<sub>4</sub></span></a>
+          </h2>
+          <div class="chart"></div>
+          <div class="panel-footer"></div>
+        </div>
+        <div class="panel pie">
+          <h2>unknown</h2>
+          <div class="chart"></div>
+          <div class="panel-footer"></div>
+        </div>
+      </div>
+      <!-- 中间盒子 -->
+      <div class="column">
+        <!-- 头部 no模块 -->
+        <div class="no">
+          <div class="no-hd">
+            <ul>
+              <li class="line_cost">438</li>
+              <li class="stable_points">438</li>
+            </ul>
+          </div>
+          <div class="no-bd">
+            <ul>
+              <li>当前总线路耗散(MkW·h)</li>
+              <li>当前总稳定节点数</li>
+            </ul>
+          </div>
+        </div>
+        <!-- map模块 -->
+        <div class="topology">
+          <div class="chart"></div>
+        </div>
+      </div>
+      <!-- 右侧盒子 -->
+      <div class="column">
+        <div class="panel stable_point_sum">
+          <h2>总稳定节点数</h2>
+          <div class="chart"></div>
+          <div class="panel-footer"></div>
+        </div>
+        <div class="panel line_cost_sum">
+          <h2>总线路耗散(MkW·h)</h2>
+          <div class="chart"></div>
+          <div class="panel-footer"></div>
+        </div>
+        <div class="panel pie2">
+          <h2>unknown</h2>
+          <div class="chart"></div>
+          <div class="panel-footer"></div>
+        </div>
+      </div>
+    </section>
+    <script src="js/flexible.js"></script>
+    <script src="js/echarts.min.js"></script>
+    <script src="js/jquery.js"></script>
+    <script src="js/index.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.18.1/vis.min.js"></script>
+  </body>
+</html>
