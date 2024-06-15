@@ -62,9 +62,9 @@ class predict_class(csv2df):
             time_list = [cur_time + pd.Timedelta(hours=i/4) for i in range(1, self.forecast_step+1)]
         
         for i in range(len(time_list)):
-            assert time_list[i] in self.df.index, f'Timestamp {time_list[i]} not found in power1_df index'
+            assert time_list[i] in self.scaled_df.index, f'Timestamp {time_list[i]} not found in df index'
         print('check point 1', time_list)
-        data = self.df.loc[time_list]
+        data = self.scaled_df.loc[time_list]
         if history:
             selected_features = self.config['data_config']['previous_features']
             drop_features = []
@@ -81,6 +81,8 @@ class predict_class(csv2df):
         columns = self.df.columns
         values = self.scaler.transform(values)
         scaled_df = pd.DataFrame(values, columns=columns)
+        scaled_df['time'] = self.df.index
+        scaled_df.set_index('time', inplace=True)
         return scaled_df
     
     def predict_inverse(self, predicted_data):
@@ -115,8 +117,8 @@ class predict_class(csv2df):
         else:
             predict_result = self.model(data_pre_cur)
             predict_result = predict_result.reshape(self.forecast_step, len(self.target_column_index))
-        
-        return predict_result.detach().cpu().numpy()
+        predict_result_inv = self.predict_inverse(predict_result.detach().cpu().numpy())
+        return predict_result_inv
     
 
 if __name__ == '__main__':
@@ -150,14 +152,12 @@ if __name__ == '__main__':
     # print('predicted result(after inverse transform) shape: ', predict_result_inv.shape)
 
     # 读取特定时间点的数据
-    original_data = csv2df(power1_path)
-    data_read = original_data.get_data(point_step = 10, history_step = 0)
-    print(data_read)
+    original_data = csv2df(power2_path)
+    data_read = original_data.get_data(point_step = 262, history_step = 5)
+    print(data_read['power'])
 
     # 调用模型进行预测
-    load1_class = predict_class(power_yaml_path, 'data1', power1_path)
-    predict_result = load1_class.predict(point_step = 10) 
-    print('predicted result(scaled): ', predict_result)
-    print('predicted result(scaled) shape: ', predict_result.shape)
-    predict_result_inv = load1_class.predict_inverse(predict_result)
-    print('predicted result(after inverse transform) shape: ', predict_result_inv.shape)
+    load1_class = predict_class(power_yaml_path, 'data2', power2_path)
+    predict_result = load1_class.predict(point_step = 256) 
+    print('predicted result: ', predict_result)
+    print('predicted result shape: ', predict_result.shape)
