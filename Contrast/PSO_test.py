@@ -5,6 +5,11 @@ import pandapower as pp
 import numpy as np
 import copy
 import json
+import yaml
+
+config_path = './utils/configs/environment/env.yaml'
+with open(config_path, 'r') as file:
+    config = yaml.safe_load(file)
 
 log = {
     "time_flag": [],
@@ -16,7 +21,7 @@ log = {
     "num_switch_changes": []
       }
 
-np.random.seed(17)
+np.random.seed(0)
 iterations = 288
 env = PowerSystemEnv()
 sample_idx = np.random.randint(0, 10000) 
@@ -55,10 +60,12 @@ for i in range(iterations):
     reward_4 = 0
     ext_grid = net.res_ext_grid['p_mw'].sum()
     if ext_grid < 0:
-        reward_4 -= ext_grid
+        reward_4 = ext_grid
     else:
         reward_4 = 0
-    reward = 100 * reward_1 + reward_2 + reward_3 + 0 * reward_4
+        
+    reward = config['ratio']['loss_k'] * reward_1 + config['ratio']['stable_k'] * reward_2 \
+        + config['ratio']['switch_k'] * reward_3 + config['ratio']['inverse_k'] * reward_4
 
     last_best = best
     log["time_flag"].append(time_flag)

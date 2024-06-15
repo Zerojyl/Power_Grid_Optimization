@@ -1,25 +1,23 @@
 
 import pandapower as pp
-import gym
-import pandas as pd
-import numpy as np
-import datetime
-import csv
-import random
-import networkx as nx
-import matplotlib.pyplot as plt
-import time
+import yaml
 from utils.data_process.data_read import csv2df
+import random
+
+config_path = './utils/configs/environment/env.yaml'
+with open(config_path, 'r') as file:
+    config = yaml.safe_load(file)
 
 bus_vn_kv = 12.66 # 各节点额定电压
-load_path = './Data/load_data/load_data.csv'
-power1_path = './Data/power_data/merged_power_data1.csv'
-power2_path='./Data/power_data/merged_power_data2.csv'
-power3_path='./Data/power_data/merged_power_data3.csv'
-power4_path='./Data/power_data/merged_power_data4.csv'
-power_yaml_path = './utils/configs/power_forecasting/lstm_power_forecasting.yaml'
-load_yaml_path = './utils/configs/load_forecasting/lstm_load_forecasting.yaml'
-data_str = 'data2'
+
+load_path = config['data_path']['load_path']
+power1_path = config['data_path']['power1_path']
+power2_path= config['data_path']['power2_path']
+power3_path= config['data_path']['power3_path']
+power4_path= config['data_path']['power4_path']
+power_yaml_path = config['data_path']['power_yaml_path']
+load_yaml_path = config['data_path']['load_yaml_path']
+
 class PowerSystemEnv():
     def __init__(self):
         self.network = self.configure_power_network() # 创建自定义的电力系统网络
@@ -31,13 +29,13 @@ class PowerSystemEnv():
         self.power2_data = csv2df(power2_path)
         self.power3_data = csv2df(power3_path)
         self.power4_data = csv2df(power4_path)
-        self.wind_k = 0.04 # 风电功率系数，最大风电功率为100MW，实际单风机一般不超过6MW
+        self.wind_k = config['ratio']['wind_k'] # 风电功率系数，最大风电功率为100MW，实际单风机一般不超过6MW
 
     # 重置电力系统环境
     def reset(self, sample_idx=None):
 
         if sample_idx is None:
-            self.time_flag = random.randint(0,10000)
+            self.time_flag = random.randint(0,config['reset_range'])
         else :
             self.time_flag = sample_idx
 

@@ -1,3 +1,11 @@
 tensorboard_save:
-  tensorboard_train_dir: 'tensorboard_log/agent_training'
+  tensorboard_train_dir: './tensorboard_log/PPO_training'
   tensorboard_eval_dir: 'tensorboard_log/agent_eval'
+
+train :
+  num_workers: 4
+  learning_rate: 0.0005
+  n_steps: 64
+  n_epochs: 20
+  gamma: 0.93
+  train_sample : 100000
