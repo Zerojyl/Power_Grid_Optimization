@@ -10,7 +10,7 @@ import json
 iterations = 288
 np.random.seed(0) #设置随机种子
 env = TrainEnv()  # 创建环境
-env.env.printout = False
+env.env.printout = True
 env.env.is_display = True
 env.env.log_name = "./results/st_test.json"
 sample_idx = np.random.randint(0, 10000) 

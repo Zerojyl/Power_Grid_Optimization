@@ -63,7 +63,7 @@ class predict_class(csv2df):
         
         for i in range(len(time_list)):
             assert time_list[i] in self.scaled_df.index, f'Timestamp {time_list[i]} not found in df index'
-        print('check point 1', time_list)
+        # print('check point 1', time_list)
         data = self.scaled_df.loc[time_list]
         if history:
             selected_features = self.config['data_config']['previous_features']

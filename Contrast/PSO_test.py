@@ -34,6 +34,7 @@ for i in range(iterations):
     best = li.main()
     net = build_case33(network,opennum = best) #导入结果网络
     pp.runpp(net,numba = False)#潮流计算
+
     time_flag = env.load_data.get_data(point_step = env.time_flag, history_step = 0).index[-1].isoformat()
     loss_kw = 1000*net.res_line["pl_mw"].sum() # 线路损耗 kw
     load_sum_kw = 1000*net.res_load["p_mw"].sum() # 负荷总和 kw

@@ -8,4 +8,4 @@ train :
   n_steps: 64
   n_epochs: 20
   gamma: 0.93
-  train_sample : 100000
+  train_sample : 30000

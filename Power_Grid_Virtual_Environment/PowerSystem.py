@@ -342,7 +342,7 @@ class PowerSystemEnv(gym.Env):
 
         # 获取此时的电网状态，计算奖励
         wind_power, load, losses, voltage, ext_grid = self.get_observation()
-        reward, reward_3 = self.compute_reward(losses, voltage, self.action_actually[action],ext_grid) # 这里输入单位均为mw级
+        reward, switch_num,number_stable = self.compute_reward(losses, voltage, self.action_actually[action],ext_grid) # 这里输入单位均为mw级
         # print("执行动作的奖励: \n",reward,"\n")
 
         if is_best:
@@ -360,7 +360,7 @@ class PowerSystemEnv(gym.Env):
             self.log["load_sum_kw"].append(load_sum_kw)
             self.log["wind_power_kw"].append(wind_power_kw)
             self.log["inversely_kw"].append(inversely_kw)
-            self.log["num_switch_changes"].append(reward_3)
+            self.log["num_switch_changes"].append(switch_num)
             with open(self.log_name, 'w') as f:
                 json.dump(self.log, f, indent=4)
         # 判断本次训练是否结束
@@ -395,10 +395,10 @@ class PowerSystemEnv(gym.Env):
 
     # 获取观测状态
     def get_observation(self):
-        wind_power1 = self.power1_data.get_data(point_step = self.time_flag, history_step = 0).loc[:,'power'].values[0]
-        wind_power2 = self.power2_data.get_data(point_step = self.time_flag, history_step = 0).loc[:,'power'].values[0]
-        wind_power3 = self.power3_data.get_data(point_step = self.time_flag, history_step = 0).loc[:,'power'].values[0]
-        wind_power4 = self.power4_data.get_data(point_step = self.time_flag, history_step = 0).loc[:,'power'].values[0]
+        wind_power1 = self.wind_k * self.power1_data.get_data(point_step = self.time_flag, history_step = 0).loc[:,'power'].values[0]
+        wind_power2 = self.wind_k * self.power2_data.get_data(point_step = self.time_flag, history_step = 0).loc[:,'power'].values[0]
+        wind_power3 = self.wind_k * self.power3_data.get_data(point_step = self.time_flag, history_step = 0).loc[:,'power'].values[0]
+        wind_power4 = self.wind_k * self.power4_data.get_data(point_step = self.time_flag, history_step = 0).loc[:,'power'].values[0]
         wind_power = [wind_power1, wind_power2, wind_power3, wind_power4]
         load = self.load_data.get_data(point_step = self.time_flag, history_step = 0).values[0]
         losses = self.network.res_line['pl_mw'].values
@@ -408,10 +408,14 @@ class PowerSystemEnv(gym.Env):
     # 获取预测数据git 
     def get_predict_data(self):
         load = self.load_pre.predict(point_step = self.time_flag).flatten().tolist()
-        power1 = self.power1_pre.predict(point_step = self.time_flag).flatten().tolist()
-        power2 = self.power2_pre.predict(point_step = self.time_flag).flatten().tolist()
-        power3 = self.power3_pre.predict(point_step = self.time_flag).flatten().tolist()
-        power4 = self.power4_pre.predict(point_step = self.time_flag).flatten().tolist()
+        power1 = [self.wind_k * x for x in self.power1_pre.predict(point_step = self.time_flag).flatten().tolist()]
+        power2 = [self.wind_k * x for x in self.power2_pre.predict(point_step = self.time_flag).flatten().tolist()]
+        power3 = [self.wind_k * x for x in self.power3_pre.predict(point_step = self.time_flag).flatten().tolist()]
+        power4 = [self.wind_k * x for x in self.power4_pre.predict(point_step = self.time_flag).flatten().tolist()]
+        # power1 = self.wind_k * self.power1_pre.predict(point_step = self.time_flag).flatten().tolist()
+        # power2 = self.wind_k * self.power2_pre.predict(point_step = self.time_flag).flatten().tolist()
+        # power3 = self.wind_k * self.power3_pre.predict(point_step = self.time_flag).flatten().tolist()
+        # power4 = self.wind_k * self.power4_pre.predict(point_step = self.time_flag).flatten().tolist()
         power = power1 + power2 + power3 + power4
         return load, power
     # 获取网损
@@ -489,14 +493,13 @@ class PowerSystemEnv(gym.Env):
             wind_key = f"wind_power{i+1}"
             self.display_data["wind_power"][wind_key] = \
                 self.left_shift_add(self.display_data["wind_power"][wind_key], 1000 * self.network.res_gen['p_mw'].values[i])
-            self.display_data["wind_power"][wind_key][-6:] = power_pre[i*6:i*6+6]
+            self.display_data["wind_power"][wind_key][-6:] =  [1000* x for x in power_pre[i*6:i*6+6] ]
 
         for i in range(32):
             load_key = f"load_{i+1}"
             self.display_data["loads"][load_key] = \
                 self.left_shift_add(self.display_data["loads"][load_key], 1000 * self.network.res_load['p_mw'].values[i])
             k = 1000 * self.network.res_load['p_mw'].values[i] / self.network.load.at[i,"scaling"]
-            print(k)
             self.display_data["loads"][load_key][-6:] =  [k*load_pre[i], k*load_pre[i+32], k*load_pre[i+64], k*load_pre[i+96], k*load_pre[i+128], k*load_pre[i+160]]
         
         self.display_data["topology"]["edges"].clear()

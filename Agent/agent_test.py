@@ -6,7 +6,7 @@ import json
 from PPOAgent import PPOAgent
 
 
-iterations = 600
+iterations = 288
 
 
 np.random.seed(0) #设置随机种子
