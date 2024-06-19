@@ -47,7 +47,7 @@
       <!-- 左侧盒子 -->
       <div class="column">
         <div class="panel loads">
-          <h2>负载功率(MkW·h)： <button onclick="showSelect()" id="mainNumber" >1</button>
+          <h2>负载功率(kW)： <button onclick="showSelect()" id="mainNumber" >1</button>
             <a></a>
           </h2>
           <div id="numberSelect">
@@ -92,7 +92,7 @@
           <div class="panel-footer"></div>
         </div>
         <div class="panel wind_power">
-          <h2>风机功率(MkW·h)
+          <h2>风机功率(kW)
             <a class="a-active" href="javascript:;"><span>W<sub>1</sub></span></a>
             <a href="javascript:;"><span>W<sub>2</sub></span></a>
             <a href="javascript:;"><span>W<sub>3</sub></span></a>
@@ -101,8 +101,8 @@
           <div class="chart"></div>
           <div class="panel-footer"></div>
         </div>
-        <div class="panel pie">
-          <h2>unknown</h2>
+        <div class="panel inverse_power">
+          <h2>倒送功率(kW)</h2>
           <div class="chart"></div>
           <div class="panel-footer"></div>
         </div>
@@ -119,7 +119,7 @@
           </div>
           <div class="no-bd">
             <ul>
-              <li>当前总线路耗散(MkW·h)</li>
+              <li>当前总线路耗散(kW)</li>
               <li>当前总稳定节点数</li>
             </ul>
           </div>
@@ -137,12 +137,12 @@
           <div class="panel-footer"></div>
         </div>
         <div class="panel line_cost_sum">
-          <h2>总线路耗散(MkW·h)</h2>
+          <h2>总线路耗散(kW)</h2>
           <div class="chart"></div>
           <div class="panel-footer"></div>
         </div>
-        <div class="panel pie2">
-          <h2>unknown</h2>
+        <div class="panel score">
+          <h2>得分</h2>
           <div class="chart"></div>
           <div class="panel-footer"></div>
         </div>
@@ -151,7 +151,7 @@
     <script src="js/flexible.js"></script>
     <script src="js/echarts.min.js"></script>
     <script src="js/jquery.js"></script>
-    <script src="js/index.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.18.1/vis.min.js"></script>
+    <script src="js/index_mid.js"></script>
   </body>
 </html>
