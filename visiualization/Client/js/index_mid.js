@@ -1,13 +1,12 @@
 // 创建 EventSource 对象，指定服务器路径
 const eventSource = new EventSource('http://127.0.0.1:5000/data');
-// wind_power_index=1;
-// loads_index=1;
 change=-1;
 // 监听服务器发送的消息
 eventSource.onmessage = function(event) {
     // 解析 JSON 数据
     const data = JSON.parse(event.data);
     head(data);
+    time(data);
     if(change!=data.topology.change)
     {
       change=data.topology.change;
@@ -15,13 +14,11 @@ eventSource.onmessage = function(event) {
     };
     wind_power(data);
     loads(data);
-
     stable_point_sum(data);
     line_cost_sum(data);
     score(data);
     inverse_power(data);
 };
-
 // 处理连接关闭事件
 eventSource.onerror = function(err) {
     alert("cannot connect to the server!")
@@ -30,7 +27,10 @@ eventSource.onerror = function(err) {
 };
 
 //中间数据
-
+function time(data){
+  var time=data.time;
+  document.querySelector('.show-time').innerHTML=time;
+}
 //头部数据
 function head(data)
 {
@@ -85,9 +85,7 @@ function topology(data) {
 function wind_power(data) {
 
   var wind_power = data.wind_power;
-
   var myChart = echarts.init(document.querySelector(".wind_power .chart"));
-
   var option = { 
     fontFamily:'STFangsong',  
     toolbox: {
@@ -137,6 +135,12 @@ function wind_power(data) {
       }
     },
     yAxis: {
+      min: function (value) {
+        return Math.round(value.min) - 100;
+      },
+      max: function (value) {
+      return Math.round(value.max)+100;
+      },
       type: 'value',
       // 去除刻度线
       axisTick: {
@@ -197,7 +201,6 @@ function wind_power(data) {
       }
     ]
   };
-
   myChart.setOption(option);
 
   // 4.让图表随屏幕自适应
@@ -205,33 +208,16 @@ function wind_power(data) {
     myChart.resize();
   })
 
-  // // 5.点击切换数据
-  // $('.wind_power h2 a').on('click', function () {
-  //   wind_power_index=$(this).index();
-  //   wind_power_index+=1;
-  //   var obj = wind_power['wind_power' + wind_power_index.toString()];
-  //   option.series.data = obj;
-  //   // 选中高亮
-  //   $('.wind_power h2 a').removeClass('a-active');
-  //   $(this).addClass('a-active');
-
-  //   // 需要重新渲染
-  //   myChart.setOption(option);
-  // })
   $('.wind_power h2 a').on('click', function () {
     var wind_power_index=$(this).index();
     wind_power_index+=1;
-    // console.log('wind_power_index:', wind_power_index);  // 输出 wind_power_index 的值
     var obj = wind_power['wind_power' + wind_power_index.toString()];
-    // console.log('obj:', obj);  // 输出 obj 的值
     option.series[0].data = obj;
     // 选中高亮
     $('.wind_power h2 a').removeClass('a-active');
     $(this).addClass('a-active');
-
     // 需要重新渲染
     myChart.setOption(option);
-   // console.log('option:', option);  // 输出 option 的值
 })
 };
 
@@ -292,6 +278,12 @@ function loads(data) {
     },
     yAxis: {
       type: 'value',
+      min: function (value) {
+        return Math.round(value.min) - 5;
+      },
+      max: function (value) {
+      return Math.round(value.max)+5;
+      },
       // 去除刻度线
       axisTick: {
         show: false
@@ -362,13 +354,12 @@ function loads(data) {
   $(document).on('DOMSubtreeModified', '#mainNumber', function() {
     loads_index= document.getElementById("mainNumber").textContent;
     option.series[0].data = loads['load_'+loads_index.toString()];
-
     // 需要重新渲染
     myChart.setOption(option);
   })
 };
 
-//倒送功率
+//逆馈功率
 function inverse_power(data) {
 
   var inverse_power = data.inverse_power;
@@ -425,6 +416,10 @@ function inverse_power(data) {
     },
     yAxis: {
       type: 'value',
+      max:0,
+      min: function (value) {
+        return Math.round(value.min) - 100;
+      },
       // 去除刻度线
       axisTick: {
         show: false
@@ -550,6 +545,12 @@ function stable_point_sum(data) {
       }
     },
     yAxis: {
+      min: function (value) {
+        return Math.round(value.min) - 5;
+      },
+      max: function (value) {
+      return Math.round(value.max)+5;
+      },
       type: 'value',
       // 去除刻度线
       axisTick: {
@@ -675,6 +676,12 @@ function line_cost_sum(data) {
       }
     },
     yAxis: {
+      min: function (value) {
+        return Math.round(value.min) - 100;
+      },
+      max: function (value) {
+      return Math.round(value.max)+100;
+      },
       type: 'value',
       // 去除刻度线
       axisTick: {

@@ -11,8 +11,6 @@ data_source = os.path.join(local_path, "data.json")
 @app.route('/')
 def index():
     return "Server is running"
-
-
 @app.route('/data')
 def events():
     return Response(stream_data(), content_type='text/event-stream')
@@ -30,7 +28,7 @@ def stream_data():
                 data = json.load(file)
                 yield "data: {}\n\n".format(json.dumps(data))
             last_modified = current_modified
-        time.sleep(1)
+        time.sleep(0.01)
 
 
 
