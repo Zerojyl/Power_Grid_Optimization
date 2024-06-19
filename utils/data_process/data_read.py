@@ -19,7 +19,7 @@ class csv2df:
         time_list = [cur_time - pd.Timedelta(hours=i/4) for i in range(history_step, -1, -1)]
         for i in range(len(time_list)):
             assert time_list[i] in self.df.index, f'Timestamp {time_list[i]} not found in power1_df index'
-        print('check point 2', time_list)
+
         data = self.df.loc[time_list]
         return data
     
@@ -62,9 +62,9 @@ class predict_class(csv2df):
             time_list = [cur_time + pd.Timedelta(hours=i/4) for i in range(1, self.forecast_step+1)]
         
         for i in range(len(time_list)):
-            assert time_list[i] in self.df.index, f'Timestamp {time_list[i]} not found in power1_df index'
-        print('check point 1', time_list)
-        data = self.df.loc[time_list]
+            assert time_list[i] in self.scaled_df.index, f'Timestamp {time_list[i]} not found in df index'
+        # print('check point 1', time_list)
+        data = self.scaled_df.loc[time_list]
         if history:
             selected_features = self.config['data_config']['previous_features']
             drop_features = []
@@ -81,6 +81,8 @@ class predict_class(csv2df):
         columns = self.df.columns
         values = self.scaler.transform(values)
         scaled_df = pd.DataFrame(values, columns=columns)
+        scaled_df['time'] = self.df.index
+        scaled_df.set_index('time', inplace=True)
         return scaled_df
     
     def predict_inverse(self, predicted_data):
@@ -98,34 +100,28 @@ class predict_class(csv2df):
 
     def predict(self, point_step, base_time='2019-01-05 00:00:00'):
         data_pre_cur = self.get_data(point_step, base_time, history=True)
-        # print('check point 3', data_pre_cur.shape)
+
         data_pre_cur = torch.tensor(data_pre_cur.values).float().to(self.device)
         data_pre_cur = data_pre_cur.unsqueeze(0)
-        # print('check point 4', data_pre_cur.size())
-        # print(data_pre_cur.size())
+
         data_forecast = self.get_data(point_step, base_time, history=False)
         data_forecast = torch.tensor(data_forecast.values).float().to(self.device)
-        # print(data_forecast)
+
         if data_forecast.size()[1] != 0:
-            # print('check point 5', data_forecast.size())
+
             data_forecast = data_forecast.reshape(1, -1)
-            # print('check point 6', data_forecast.size())
             predict_result = self.model(data_pre_cur, data_forecast)
             predict_result = predict_result.reshape(self.forecast_step, len(self.target_column_index))
         else:
             predict_result = self.model(data_pre_cur)
             predict_result = predict_result.reshape(self.forecast_step, len(self.target_column_index))
-        
-        return predict_result.detach().cpu().numpy()
+        predict_result_inv = self.predict_inverse(predict_result.detach().cpu().numpy())
+        return predict_result_inv
     
 
 if __name__ == '__main__':
-    # change the path to your own path
-    # load_path = './Data/load_data/load_data.csv'
+
     load_path = './Data/load_data/load_data.csv'
-  
-    # 将下面的路径都改为相对路径
-    
     power1_path = './Data/power_data/merged_power_data1.csv'
     power2_path='./Data/power_data/merged_power_data2.csv'
     power3_path='./Data/power_data/merged_power_data3.csv'
@@ -135,29 +131,14 @@ if __name__ == '__main__':
     power_yaml_path = './utils/configs/power_forecasting/lstm_power_forecasting.yaml'
     load_yaml_path = './utils/configs/load_forecasting/lstm_load_forecasting.yaml'
     data_str = 'data2'
-    
-    # # 读取特定时间点的数据
-    # original_data = csv2df(load_path)
-    # data_read = original_data.get_data(point_step = 10, history_step = 0)
-    # print(data_read)
-
-    # # 调用模型进行预测
-    # load1_class = predict_class(load_yaml_path, 'data1', load_path)
-    # predict_result = load1_class.predict(point_step = 10) 
-    # print('predicted result(scaled): ', predict_result)
-    # print('predicted result(scaled) shape: ', predict_result.shape)
-    # predict_result_inv = load1_class.predict_inverse(predict_result)
-    # print('predicted result(after inverse transform) shape: ', predict_result_inv.shape)
 
     # 读取特定时间点的数据
-    original_data = csv2df(power1_path)
-    data_read = original_data.get_data(point_step = 10, history_step = 0)
-    print(data_read)
+    original_data = csv2df(power2_path)
+    data_read = original_data.get_data(point_step = 262, history_step = 5)
+    print(data_read['power'])
 
     # 调用模型进行预测
-    load1_class = predict_class(power_yaml_path, 'data1', power1_path)
-    predict_result = load1_class.predict(point_step = 10) 
-    print('predicted result(scaled): ', predict_result)
-    print('predicted result(scaled) shape: ', predict_result.shape)
-    predict_result_inv = load1_class.predict_inverse(predict_result)
-    print('predicted result(after inverse transform) shape: ', predict_result_inv.shape)
+    load1_class = predict_class(power_yaml_path, 'data2', power2_path)
+    predict_result = load1_class.predict(point_step = 256) 
+    print('predicted result: ', predict_result)
+    print('predicted result shape: ', predict_result.shape)

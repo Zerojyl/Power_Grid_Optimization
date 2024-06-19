@@ -2,7 +2,7 @@ import pandapower as pp
 import gym
 import pandas as pd
 import numpy as np
-import datetime
+import yaml
 import json
 import random
 import networkx as nx
@@ -10,20 +10,24 @@ import matplotlib.pyplot as plt
 from utils.data_process.data_read import csv2df
 from utils.data_process.data_read import predict_class
 from Power_Grid_Virtual_Environment.action_space import action_all
-load_path = './Data/load_data/load_data.csv'
-power1_path = './Data/power_data/merged_power_data1.csv'
-power2_path='./Data/power_data/merged_power_data2.csv'
-power3_path='./Data/power_data/merged_power_data3.csv'
-power4_path='./Data/power_data/merged_power_data4.csv'
-power_yaml_path = './utils/configs/power_forecasting/lstm_power_forecasting.yaml'
-load_yaml_path = './utils/configs/load_forecasting/lstm_load_forecasting.yaml'
-data_str = 'data2'
+
+config_path = './utils/configs/environment/env.yaml'
+with open(config_path, 'r') as file:
+    config = yaml.safe_load(file)
+
+load_path = config['data_path']['load_path']
+power1_path = config['data_path']['power1_path']
+power2_path= config['data_path']['power2_path']
+power3_path= config['data_path']['power3_path']
+power4_path= config['data_path']['power4_path']
+power_yaml_path = config['data_path']['power_yaml_path']
+load_yaml_path = config['data_path']['load_yaml_path']
+
 
 pd.options.mode.chained_assignment = None
 bus_vn_kv = 12.66 # 各节点额定电压
 line_simply = [0, 1, 2, 5, 7, 8, 11, 14, 17, 20, 21, 24, 28, 34, 32, 33, 36, 35] #简化后的线路（可控制开断的线路）
 # 23个动作对应的实际动作，皆为可行的满足连通性和无环（辐射性）的拓扑结构
-
 
 class PowerSystemEnv(gym.Env):
     
@@ -42,9 +46,12 @@ class PowerSystemEnv(gym.Env):
         self.power3_data = csv2df(power3_path)
         self.power4_data = csv2df(power4_path)
 
-        self.wind_k = 0.04 # 风电功率系数，最大风电功率为100MW，实际单风机一般不超过6MW
-        self.loss_k = 100 # 线路损耗奖励比例
-        self.inverse_k = 50  # 逆馈信息奖励比例
+        self.wind_k = config['ratio']['wind_k']  # 风电功率系数，最大风电功率为100MW，实际单风机一般不超过6MW
+        self.loss_k =  config['ratio']['loss_k'] # 线路损耗奖励比例
+        self.stable_k = config['ratio']['stable_k']  # 节点电压稳定奖励比例
+        self.switch_k = config['ratio']['switch_k']  # 动作惩罚比例
+        self.cycle_k = config['ratio']['cycle_k']  # 环状网络奖励比例
+        self.inverse_k = config['ratio']['inverse_k']  # 逆馈信息奖励比例
         # 预测模型读入
         self.load_pre = predict_class(load_yaml_path, 'data1', load_path)
         self.power1_pre = predict_class(power_yaml_path, 'data1', power1_path)
@@ -62,14 +69,142 @@ class PowerSystemEnv(gym.Env):
                 "inversely_kw": [],
                 "num_switch_changes": [],
             }
+        self.display_data = {
+            "time" : '0',
+            "line_cost" : 0,
+            "stable_points": 0,
+            "stable_point_sum": [0]*12,
+            "line_cost_sum":[0]*12,
+            "wind_power": 
+            {
+                "wind_power1" : [0]*14,
+                "wind_power2" : [0]*14,
+                "wind_power3" : [0]*14,
+                "wind_power4" : [0]*14,
+            },
+
+            "loads":
+            {
+                "load_1" : [0]*14,
+                "load_2" : [0]*14,
+                "load_3" : [0]*14,
+                "load_4" : [0]*14,
+                "load_5" : [0]*14,
+                "load_6" : [0]*14,
+                "load_7" : [0]*14,
+                "load_8" : [0]*14,
+                "load_9" : [0]*14,
+                "load_10" : [0]*14,
+                "load_11" : [0]*14,
+                "load_12" : [0]*14,
+                "load_13" : [0]*14,
+                "load_14" : [0]*14,
+                "load_15" : [0]*14,
+                "load_16" : [0]*14,
+                "load_17" : [0]*14,
+                "load_18" : [0]*14,
+                "load_19" : [0]*14,
+                "load_20" : [0]*14,
+                "load_21" : [0]*14,
+                "load_22" : [0]*14,
+                "load_23" : [0]*14,
+                "load_24" : [0]*14,
+                "load_25" : [0]*14,
+                "load_26" : [0]*14,
+                "load_27" : [0]*14,
+                "load_28" : [0]*14,
+                "load_29" : [0]*14,
+                "load_30" : [0]*14,
+                "load_31" : [0]*14,
+                "load_32" : [0]*14
+             } ,
+             "inverse_power" :[0]*12,
+            "topology":
+            {"change": 1,
+            "nodes":[
+            {"id": 0, "label": "0"},
+            {"id": 1, "label": "1"},
+            {"id": 2, "label": "2"},
+            {"id": 3, "label": "3"},
+            {"id": 4, "label": "4"},
+            {"id": 5, "label": "5"},
+            {"id": 6, "label": "6"},
+            {"id": 7, "label": "7"},
+            {"id": 8, "label": "8"},
+            {"id": 9, "label": "9"},
+            {"id": 10, "label": "10"},
+            {"id": 11, "label": "11"},
+            {"id": 12, "label": "12"},
+            {"id": 13, "label": "13"},
+            {"id": 14, "label": "14"},
+            {"id": 15, "label": "15"},
+            {"id": 16, "label": "16"},
+            {"id": 17, "label": "17"},
+            {"id": 18, "label": "18"},
+            {"id": 19, "label": "19"},
+            {"id": 20, "label": "20"},
+            {"id": 21, "label": "21"},
+            {"id": 22, "label": "22"},
+            {"id": 23, "label": "23"},
+            {"id": 24, "label": "24"},
+            {"id": 25, "label": "25"},
+            {"id": 26, "label": "26"},
+            {"id": 27, "label": "27"},
+            {"id": 28, "label": "28"},
+            {"id": 29, "label": "29"},
+            {"id": 30, "label": "30"},
+            {"id": 31, "label": "31"},
+            {"id": 32, "label": "32"}
+            ],
+            "edges": [
+            {"from": 0, "to": 1},
+            {"from": 1, "to": 2},
+            {"from": 2, "to": 3},
+            {"from": 3, "to": 4},
+            {"from": 4, "to": 5},
+            {"from": 5, "to": 6},
+            {"from": 6, "to": 7},
+            {"from": 7, "to": 8},
+            {"from": 8, "to": 9},
+            {"from": 9, "to": 10},
+            {"from": 10, "to": 11},
+            {"from": 11, "to": 12},
+            {"from": 12, "to": 13},
+            {"from": 13, "to": 14},
+            {"from": 14, "to": 15},
+            {"from": 15, "to": 16},
+            {"from": 16, "to": 17},
+            {"from": 1, "to": 18},
+            {"from": 18, "to": 19},
+            {"from": 19, "to": 20},
+            {"from": 20, "to": 21},
+            {"from": 2, "to": 22},
+            {"from": 22, "to": 23},
+            {"from": 23, "to": 24},
+            {"from": 5, "to": 25},
+            {"from": 25, "to": 26},
+            {"from": 26, "to": 27},
+            {"from": 27, "to": 28},
+            {"from": 28, "to": 29},
+            {"from": 29, "to": 30},
+            {"from": 30, "to": 31},
+            {"from": 31, "to": 32},
+            {"from": 11, "to": 21},
+            {"from": 17, "to": 32},
+            {"from": 20, "to": 7, "dashes": "true"},
+            {"from": 8, "to": 14, "dashes": "true"},
+            {"from": 24, "to": 28, "dashes": "true"}
+            ]}
+        }
+        self.is_display = False
         self.log_name = "unknow.json"
         self.printout = False
-        self.last_state = None
+        self.last_state = [0]*323
     # 重置电力系统环境
     def reset(self, sample_idx=None):
 
         if sample_idx is None:
-            self.time_flag = random.randint(0,10000)
+            self.time_flag = random.randint(0,config['reset_range'])
         else :
             self.time_flag = sample_idx
         # 初始化电网拓扑
@@ -99,14 +234,14 @@ class PowerSystemEnv(gym.Env):
         load_pre, power_pre = self.get_predict_data()
         state = list(wind_power) + list(load) + list(losses) + list(voltage) + list(ext_grid) + list(load_pre) + list(power_pre)
         self.last_state = state
-        print("初始化成功！当前时刻为：")
-        print(self.load_data.get_data(point_step = self.time_flag, history_step = 0).index[-1])
+        # print("初始化成功！当前时刻为：")
+        # print(self.load_data.get_data(point_step = self.time_flag, history_step = 0).index[-1])
         return  np.array(state)
 
     # 执行动作
     def step(self, action):
     
-        if action in range(0,500):  # 如果action在0到200之间
+        if action in range(0,config['action_range']):  
             for j in range(0, 18):
                  self.network.line.at[line_simply[j], "in_service"] = bool(self.action_actually[action][j])
 
@@ -114,15 +249,19 @@ class PowerSystemEnv(gym.Env):
         try:
             pp.runpp(self.network, numba=False, max_iteration=10)
         except:
-            print("潮流计算失败，保持上一时刻状态")
+            print("执行动作时潮流计算失败，保持上一时刻状态")
             for j in range(0, 18):
                  self.network.line.at[line_simply[j], "in_service"] = bool(self.action_last[j])
-            return np.array(self.last_state), -10000, True, {}
+            return np.array(self.last_state), -1000, True, {}
 
         # 获取此时的电网状态，计算奖励
         wind_power, load, losses, voltage, ext_grid = self.get_observation()
-        reward, reward_3 = self.compute_reward(losses, voltage, self.action_actually[action],ext_grid) # 这里输入单位均为mw级
+        reward, switch_num, stable_num = self.compute_reward(losses, voltage, self.action_actually[action],ext_grid) # 这里输入单位均为mw级
         # print("执行动作的奖励: \n",reward,"\n")
+
+        if self.is_display:
+            self.display(switch_num,stable_num)
+
 
         if self.printout:
             time_flag = self.load_data.get_data(point_step = self.time_flag, history_step = 0).index[-1].isoformat()
@@ -139,7 +278,7 @@ class PowerSystemEnv(gym.Env):
             self.log["load_sum_kw"].append(load_sum_kw)
             self.log["wind_power_kw"].append(wind_power_kw)
             self.log["inversely_kw"].append(inversely_kw)
-            self.log["num_switch_changes"].append(reward_3)
+            self.log["num_switch_changes"].append(switch_num)
             with open(self.log_name, 'w') as f:
                 json.dump(self.log, f, indent=4)
         # 判断本次训练是否结束
@@ -174,29 +313,92 @@ class PowerSystemEnv(gym.Env):
         try:
             pp.runpp(self.network,numba=False)
         except:
-            print("潮流计算失败，保持上一时刻状态")
-            for j in range(0, 18):
+            print("更新时潮流计算失败，保持上一时刻状态")
+            for j in range(0, 18): 
                  self.network.line.at[line_simply[j], "in_service"] = bool(self.action_last[j])
-            return np.array(self.last_state), -10000, True, {}
+            return np.array(self.last_state), -1000, True, {}
         
         wind_power, load, losses, voltage, ext_grid  = self.get_observation()
         load_pre, power_pre = self.get_predict_data()
         next_state = list(wind_power) + list(load) + list(losses) + list(voltage) + list(ext_grid) + list(load_pre) + list(power_pre)
         self.last_state = next_state
-        # if ext_grid < 0:
-        #     info = ext_grid[0] * 1000 # 倒送功率 kw
-        # else:
-        #     info = 0 
+     
         info  = {} 
         return np.array(next_state), reward, done, info
     
+    # 执行动作,但不更新状态
+    def st_step(self, action, is_best=False):
     
+        if action in range(0,config['action_range']):  # 如果action在0到200之间
+            for j in range(0, 18):
+                 self.network.line.at[line_simply[j], "in_service"] = bool(self.action_actually[action][j])
+
+        # 运行电网进行潮流计算   
+        try:
+            pp.runpp(self.network, numba=False, max_iteration=10)
+        except:
+            print("潮流计算失败，保持上一时刻状态")
+            return -1000, True, {}
+
+        # 获取此时的电网状态，计算奖励
+        wind_power, load, losses, voltage, ext_grid = self.get_observation()
+        reward, switch_num,number_stable = self.compute_reward(losses, voltage, self.action_actually[action],ext_grid) # 这里输入单位均为mw级
+        # print("执行动作的奖励: \n",reward,"\n")
+
+        if is_best:
+            time_flag = self.load_data.get_data(point_step = self.time_flag, history_step = 0).index[-1].isoformat()
+            loss_kw = 1000 * self.sum_losses(losses) # 线路损耗功率 kw
+            load_sum_kw = 1000 * self.network.res_load['p_mw'].sum() # 负载功率 kw
+            wind_power_kw = 1000 * self.network.res_gen['p_mw'].sum() # 风电功率 kw
+            inversely_kw = 1000 * self.network.res_ext_grid['p_mw'].sum()
+            if inversely_kw > 0:
+                inversely_kw = 0
+
+            self.log["time_flag"].append(time_flag)  
+            self.log["reward"].append(reward)
+            self.log["loss_kw"].append(loss_kw)
+            self.log["load_sum_kw"].append(load_sum_kw)
+            self.log["wind_power_kw"].append(wind_power_kw)
+            self.log["inversely_kw"].append(inversely_kw)
+            self.log["num_switch_changes"].append(switch_num)
+            with open(self.log_name, 'w') as f:
+                json.dump(self.log, f, indent=4)
+        # 判断本次训练是否结束
+        self.round += 1
+
+        if self.round < self.rounf_max:
+            done = True
+        else:
+            done = False
+            self.round = 0
+
+        if is_best:
+            # 更新self.action_last和时间参考标志
+            self.action_last = self.action_actually[action]
+            self.time_flag = self.time_flag + 1 
+            # 更新负载参数
+            for i in range(0,32) :
+                self.network.load.at[i,"scaling"] = \
+                    self.load_data.get_data(point_step = self.time_flag, history_step = 0).values[0,i]
+            # 更新发电机参数
+            self.network.gen.at[0,"p_mw"] = self.wind_k*\
+                self.power1_data.get_data(point_step = self.time_flag, history_step = 0).loc[:,'power'].values[0]
+            self.network.gen.at[1,"p_mw"] = self.wind_k*\
+                self.power2_data.get_data(point_step = self.time_flag, history_step = 0).loc[:,'power'].values[0]
+            self.network.gen.at[2,"p_mw"] = self.wind_k*\
+                self.power3_data.get_data(point_step = self.time_flag, history_step = 0).loc[:,'power'].values[0]
+            self.network.gen.at[3,"p_mw"] = self.wind_k*\
+                self.power4_data.get_data(point_step = self.time_flag, history_step = 0).loc[:,'power'].values[0]
+        
+        info  = {} 
+        return reward, done, info
+
     # 获取观测状态
     def get_observation(self):
-        wind_power1 = self.power1_data.get_data(point_step = self.time_flag, history_step = 0).loc[:,'power'].values[0]
-        wind_power2 = self.power2_data.get_data(point_step = self.time_flag, history_step = 0).loc[:,'power'].values[0]
-        wind_power3 = self.power3_data.get_data(point_step = self.time_flag, history_step = 0).loc[:,'power'].values[0]
-        wind_power4 = self.power4_data.get_data(point_step = self.time_flag, history_step = 0).loc[:,'power'].values[0]
+        wind_power1 = self.wind_k * self.power1_data.get_data(point_step = self.time_flag, history_step = 0).loc[:,'power'].values[0]
+        wind_power2 = self.wind_k * self.power2_data.get_data(point_step = self.time_flag, history_step = 0).loc[:,'power'].values[0]
+        wind_power3 = self.wind_k * self.power3_data.get_data(point_step = self.time_flag, history_step = 0).loc[:,'power'].values[0]
+        wind_power4 = self.wind_k * self.power4_data.get_data(point_step = self.time_flag, history_step = 0).loc[:,'power'].values[0]
         wind_power = [wind_power1, wind_power2, wind_power3, wind_power4]
         load = self.load_data.get_data(point_step = self.time_flag, history_step = 0).values[0]
         losses = self.network.res_line['pl_mw'].values
@@ -206,60 +408,57 @@ class PowerSystemEnv(gym.Env):
     # 获取预测数据git 
     def get_predict_data(self):
         load = self.load_pre.predict(point_step = self.time_flag).flatten().tolist()
-        power1 = self.power1_pre.predict(point_step = self.time_flag).flatten().tolist()
-        power2 = self.power2_pre.predict(point_step = self.time_flag).flatten().tolist()
-        power3 = self.power3_pre.predict(point_step = self.time_flag).flatten().tolist()
-        power4 = self.power4_pre.predict(point_step = self.time_flag).flatten().tolist()
+        power1 = [self.wind_k * x for x in self.power1_pre.predict(point_step = self.time_flag).flatten().tolist()]
+        power2 = [self.wind_k * x for x in self.power2_pre.predict(point_step = self.time_flag).flatten().tolist()]
+        power3 = [self.wind_k * x for x in self.power3_pre.predict(point_step = self.time_flag).flatten().tolist()]
+        power4 = [self.wind_k * x for x in self.power4_pre.predict(point_step = self.time_flag).flatten().tolist()]
+        # power1 = self.wind_k * self.power1_pre.predict(point_step = self.time_flag).flatten().tolist()
+        # power2 = self.wind_k * self.power2_pre.predict(point_step = self.time_flag).flatten().tolist()
+        # power3 = self.wind_k * self.power3_pre.predict(point_step = self.time_flag).flatten().tolist()
+        # power4 = self.wind_k * self.power4_pre.predict(point_step = self.time_flag).flatten().tolist()
         power = power1 + power2 + power3 + power4
         return load, power
-
     # 获取网损
     def get_losses(self):
         loss_kw = 1000 * self.network.res_line['pl_mw'].sum() # 线路损耗功率 kw
         losses_sum = loss_kw * 0.25  # 15分钟的电力损耗 kwh
         return loss_kw , losses_sum
-    
     # 计算奖励。奖励函数包括四个部分：1.线路损耗；2.节点电压稳定；3.动作惩罚；4.环状网络惩罚 5.倒送功率惩罚
     def compute_reward(self, losses, voltage, action, ext_grid):
         # reward_1 line上的损耗
         loss_sum = self.sum_losses(losses) 
         reward_1 = -loss_sum #线路损耗的惩罚项 
-        # print("reward_1:",reward_1)
         
-        # reward_2 节点电压的稳定 GB：用户供电电压的允许偏移对于35 kV 及以上电压级为额定值的±5 % ，
-        # 对于10 kV 及以下电压级为额定值的±7%
+        # reward_2 节点电压的稳定 
         reward_2 = 0
         number_stable = self.voltage_stabilise(voltage) # 稳定节点的个数，0-33
-        # 不稳定项作为惩罚项
         reward_2 = number_stable - 33
-            # print("reward_2:",reward_2)
         
         # reward_3 difference between action and action_last
         reward_3 = 0
+        switch_num = 0
         for i in range(0,len(action)):
             if action[i] != self.action_last[i] :
-                reward_3 -= 1 # 开关动作的惩罚项
-        # print("reward_3:",reward_3)
-        
+                switch_num -= 1 # 开关动作的惩罚项
+        reward_3 = switch_num
         # reward_4
-        # 将多图转换为普通图
         Graph = nx.Graph(pp.topology.create_nxgraph(self.network))
         # 检查是否存在环状网络
         has_loops = nx.cycle_basis(Graph)
-        # 打印结果
         if has_loops:
             reward_4 = -10000
             print("存在环状网络") 
         else :
             reward_4 = 0
-        # print("reward_4:",reward_4)
 
         reward_5 = 0
         if ext_grid[0] < 0:
             reward_5 = ext_grid[0] # 倒送功率的惩罚项
-        #  print("reward_5:",reward_5)
-        reward = self.loss_k * reward_1 + reward_2 + reward_3 + reward_4 + self.inverse_k * reward_5
-        return reward,reward_3
+
+        reward = self.loss_k * reward_1 + self.stable_k * reward_2 + \
+              self.switch_k * reward_3 + self.cycle_k *  reward_4 + self.inverse_k * reward_5
+        
+        return reward,switch_num,number_stable
     # 计算网损的总和
     def sum_losses(self, losses):
         sum = 0
@@ -274,15 +473,83 @@ class PowerSystemEnv(gym.Env):
             if v >= target_range[0] and v <= target_range[1]:  # 电压在目标范围内
                 counts += 1
         return counts
-    
-    def print_time(self, time_flag):
-        base_time = datetime.datetime(2019, 1, 1, 0, 0)
-        delta = datetime.timedelta(minutes=15)
-        days_to_add = time_flag // 96  # 96个15分钟为一天
-        current_time = base_time + datetime.timedelta(days=days_to_add)
-        minutes_to_add = time_flag % 96  # 96个15分钟
-        current_time += datetime.timedelta(minutes=15 * minutes_to_add)
-        print(current_time.strftime("%Y/%m/%d %H:%M"))
+    # 用于前端数据展示
+    def display(self,switch_num,stable_num): 
+        load_pre, power_pre = self.get_predict_data()
+        time_flag = self.load_data.get_data(point_step = self.time_flag, history_step = 0).index[-1].isoformat()
+        inverse_kw = 1000 * self.network.res_ext_grid['p_mw'].sum()
+        if inverse_kw > 0:
+            inverse_kw = 0
+        self.display_data["time"] = time_flag
+        self.display_data["line_cost"] = 1000 * self.network.res_line['pl_mw'].sum() # 线路损耗功率 kw
+        self.display_data["stable_points"] = stable_num
+        self.display_data["stable_point_sum"] = self.left_shift(self.display_data["stable_point_sum"],stable_num)
+        self.display_data["line_cost_sum"] = self.left_shift(self.display_data["line_cost_sum"],self.display_data["line_cost"])
+        self.display_data["inverse_power"] = self.left_shift(self.display_data["inverse_power"],inverse_kw)
+        self.display_data["topology"]["change"] = switch_num
+
+
+        for i in range(4):
+            wind_key = f"wind_power{i+1}"
+            self.display_data["wind_power"][wind_key] = \
+                self.left_shift_add(self.display_data["wind_power"][wind_key], 1000 * self.network.res_gen['p_mw'].values[i])
+            self.display_data["wind_power"][wind_key][-6:] =  [1000* x for x in power_pre[i*6:i*6+6] ]
+
+        for i in range(32):
+            load_key = f"load_{i+1}"
+            self.display_data["loads"][load_key] = \
+                self.left_shift_add(self.display_data["loads"][load_key], 1000 * self.network.res_load['p_mw'].values[i])
+            k = 1000 * self.network.res_load['p_mw'].values[i] / self.network.load.at[i,"scaling"]
+            self.display_data["loads"][load_key][-6:] =  [k*load_pre[i], k*load_pre[i+32], k*load_pre[i+64], k*load_pre[i+96], k*load_pre[i+128], k*load_pre[i+160]]
+        
+        self.display_data["topology"]["edges"].clear()
+        for i in range(0,17):
+            if  self.network.line.at[i,"in_service"] == True:
+                self.display_data["topology"]["edges"].append({"from": i, "to": i+1})
+        if self.network.line.at[17,"in_service"] == True:
+            self.display_data["topology"]["edges"].append({"from": 1, "to": 18})
+        for i in range(18,21):
+            if  self.network.line.at[i,"in_service"] == True:
+                self.display_data["topology"]["edges"].append({"from": i, "to": i+1})
+        if self.network.line.at[21,"in_service"] == True:
+            self.display_data["topology"]["edges"].append({"from": 2, "to": 22})
+        for i in range(22,24):
+            if  self.network.line.at[i,"in_service"] == True:
+                self.display_data["topology"]["edges"].append({"from": i, "to": i+1})
+        if self.network.line.at[24,"in_service"] == True:
+            self.display_data["topology"]["edges"].append({"from": 5, "to": 25})
+        for i in range(25,32):
+            if  self.network.line.at[i,"in_service"] == True:
+                self.display_data["topology"]["edges"].append({"from": i, "to": i+1})
+        if self.network.line.at[32,"in_service"] == True:
+            self.display_data["topology"]["edges"].append({"from": 20, "to": 7})
+        if self.network.line.at[33,"in_service"] == True:
+            self.display_data["topology"]["edges"].append({"from": 8, "to": 14})
+        if self.network.line.at[34,"in_service"] == True:
+            self.display_data["topology"]["edges"].append({"from": 11, "to": 21, "dashes": "true"})
+        if self.network.line.at[35,"in_service"] == True:
+            self.display_data["topology"]["edges"].append({"from": 17, "to": 32, "dashes": "true"})
+        if self.network.line.at[36,"in_service"] == True:
+            self.display_data["topology"]["edges"].append({"from": 24, "to": 28, "dashes": "true"})
+        
+
+
+        with open("./results/data.json", 'w') as f:
+            json.dump(self.display_data, f, indent=4)
+        
+    # 将传入的列表除了倒数后六位外，其他的元素左移一位，倒数第7位赋值为adder
+    def left_shift_add(self, arr, adder):
+        for i in range(len(arr)-7):
+            arr[i] = arr[i+1]
+        arr[len(arr)-7] = adder
+        return arr
+
+
+    def left_shift(self,arr,adder):
+        for i in range(len(arr)-1):
+            arr[i] = arr[i+1]
+        arr[len(arr)-1] = adder
+        return arr
 
     # 配置电力系统网络
     def configure_power_network(self) :
@@ -442,76 +709,6 @@ class PowerSystemEnv(gym.Env):
 
 
         return net
-        # 更新电力系统，用于PSO对比脚本
-    
-    def update_powersystem(self,open_line,last_open_line):
-        
-        # # 执行open_line,改变拓扑结构
-        # netork = copy.deepcopy(self.network)
-        self.network.switch.closed = True  #全部线路开关处于闭合
-        for i in open_line:
-            self.network.switch.loc[i,'closed'] = False 
-
-        pp.runpp(self.network, numba=False, max_iteration=10)
-
-        reward_1 = 0
-        loss = self.network.res_line["pl_mw"].sum()
-        reward_1 = -loss
-        reward_2 = 0
-        voltage = self.network.res_bus['vm_pu'].values
-        print(self.network.res_bus)
-        target_range=(0.95, 1.05)
-        counts = 0
-        for v in voltage:
-            if v >= target_range[0] and v <= target_range[1]:  # 电压在目标范围内
-                counts += 1
-        reward_2 = counts - 33
-        reward_3 = 0
-        for i in range(len(open_line)):
-            if open_line[i] != last_open_line[i]:
-                reward_3 -= 2
-        reward_4 = 0
-        ext_grid = self.network.res_ext_grid['p_mw'].sum()
-        if ext_grid < 0:
-            reward_4 -= ext_grid
-        else:
-            reward_4 = 0
-        reward = 10 * reward_1 + reward_2 + reward_3 + 5 * reward_4
-        
-        if self.printout:
-            time_flag = self.load_data.get_data(point_step = self.time_flag, history_step = 0).index[-1].isoformat()
-            loss_kw = 1000 * self.network.res_line['pl_mw'].sum() # 线路损耗功率 kw
-            load_sum_kw = 1000 * self.network.res_load['p_mw'].sum() # 负载功率 kw
-            wind_power_kw = 1000 * self.network.res_gen['p_mw'].sum() # 风电功率 kw
-            inversely_kw = 1000 * self.network.res_ext_grid['p_mw'].sum()
-            if inversely_kw > 0:
-                inversely_kw = 0
-            self.log["time_flag"].append(time_flag)  
-            self.log["reward"].append(reward)
-            self.log["loss_kw"].append(loss_kw)
-            self.log["load_sum_kw"].append(load_sum_kw)
-            self.log["wind_power_kw"].append(wind_power_kw)
-            self.log["inversely_kw"].append(inversely_kw)
-            self.log["num_switch_changes"].append(reward_3)
-            with open(self.log_name, 'w') as f:
-                json.dump(self.log, f, indent=4)
-        
-        self.time_flag = self.time_flag + 1 
- # 更新负载参数
-        for i in range(0,32) :
-            self.network.load.at[i,"scaling"] = \
-                self.load_data.get_data(point_step = self.time_flag, history_step = 0).values[0,i]
-        # 更新发电机参数
-        self.network.gen.at[0,"p_mw"] = self.wind_k*\
-            self.power1_data.get_data(point_step = self.time_flag, history_step = 0).loc[:,'power'].values[0]
-        self.network.gen.at[1,"p_mw"] = self.wind_k*\
-            self.power2_data.get_data(point_step = self.time_flag, history_step = 0).loc[:,'power'].values[0]
-        self.network.gen.at[2,"p_mw"] = self.wind_k*\
-            self.power3_data.get_data(point_step = self.time_flag, history_step = 0).loc[:,'power'].values[0]
-        self.network.gen.at[3,"p_mw"] = self.wind_k*\
-            self.power4_data.get_data(point_step = self.time_flag, history_step = 0).loc[:,'power'].values[0]
-        
-        return self.network, reward
 if __name__ == "__main__":
     env = PowerSystemEnv()
     state = env.reset()
